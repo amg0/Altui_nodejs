@@ -7,7 +7,7 @@ var mysql = require("mysql");		// mysql access
 var genericdal = require("./genericdal");
 var pool  = null;
 
-var tables = ['devices','rooms'];
+var tables = ['devices','rooms','scenes','categories'];
 var dals = {};
 
 exports.init = function(callback) {

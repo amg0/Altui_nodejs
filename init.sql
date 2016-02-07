@@ -26,8 +26,48 @@ DROP TABLE  IF EXISTS devices;
 CREATE TABLE devices (
   id int unsigned NOT NULL AUTO_INCREMENT,
   name varchar(50) NOT NULL,
+  device_type varchar(200) NOT NULL,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
-INSERT INTO devices (id, name) VALUES
-(1, 'Prise toto');
+INSERT INTO devices (id, name, device_type) VALUES
+(1, 'Temp toto' ,'urn:schemas-micasaverde-com:device:TemperatureSensor:1'),
+(2, 'Prise Sapin' ,'urn:schemas-upnp-org:device:BinaryLight:1');
+
+
+DROP TABLE  IF EXISTS scenes;
+
+CREATE TABLE scenes (
+  id int unsigned NOT NULL AUTO_INCREMENT,
+  name varchar(50) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+
+INSERT INTO scenes (id, name) VALUES
+(1, 'Premiere Scene'),
+(2, 'Deuxieme Scene');
+
+DROP TABLE  IF EXISTS categories;
+
+CREATE TABLE categories (
+  id int unsigned NOT NULL AUTO_INCREMENT,
+  name varchar(50) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+
+INSERT INTO categories (id, name) VALUES
+(1,'Audio/Video'),
+(2,'Camera'),
+(3,'Dimmable Switch'),
+(4,'Humidity Sensor'),
+(5,'Light Sensor'),
+(6,'On/Off Switch'),
+(7,'Remote'),
+(8,'Scene Controller'),
+(9,'Sensor'),
+(10,'Temperature Sensor'),
+(11,'Window covering');
+
+
+
+
