@@ -1,0 +1,6 @@
+<!-- views/pages/ff_input.ejs -->
+  <div class="form-group">
+    <label for="<%=key%>"><%=key%></label>
+    <input <% if (required==true) {%> required <%}%> type="<%=htmltype%>" class="form-control" id="<%=key%>" placeholder="<%=placeholder%>" value="<%=value%>" <% if (key=="id") {%> readonly <%}%>>
+	<div class="help-block with-errors"></div>
+  </div>

@@ -1,0 +1,12 @@
+<!-- views/pages/defaultlist.ejs -->
+<h1><%=title%></h1>
+<div class='row'>
+	<div id ='mnow-list' >
+		<div class='col-xs-12'>
+			<button type="button" class="btn btn-default" id="mnow-create-object"><span class="glyphicon glyphicon-plus" aria-hidden="true" data-toggle="tooltip" data-placement="bottom" title="Add"></span>&nbsp;Create</button>	
+		</div>
+		<div class='col-xs-12'>
+			<%= HtmlUtils.array2Table(htmlid,data,"id",null,commandtbl) %>
+		</div>
+	</div>
+</div>

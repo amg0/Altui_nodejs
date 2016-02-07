@@ -1,0 +1,62 @@
+<!-- views/pages/defaultlist.ejs -->
+<h1><%=title%></h1>
+<div class='mnow-toolbar row'>
+	<div class='col-xs-12'>
+	</div>
+</div>
+<div class='mnow-idcard row'>
+	<div class='col-xs-12'>
+		<div class="panel panel-default">
+		  <div class="panel-body">
+			<div class='row'>
+				<div class='col-xs-12'>
+					<h3 class='capitalize inline'><%= type %></h3>
+					<div class="btn-group" role="group" aria-label="...">
+						<% var btns=  buttons[0].buttons%>
+						<% for (var j =0 ; j<btns.length ; j++ ) { %>
+						<button id="<%=btns[j].id%>" type="button" class="btn btn-default btn-sm <%=btns[j].class%>"><span class="glyphicon <%=btns[j].glyph%>" title=""></span><%=btns[j].label%></button>
+						<% } %>
+					</div>
+				</div>
+				<% for (var property in object) { %>
+					<div class='col-xs-6 col-sm-3 col-lg-2'>
+						<b><%= property %></b>
+					</div>
+					<div class='col-xs-6 col-sm-3 col-lg-2'>
+						<%= resolved_object[property] %>
+					</div>
+				<% } %>
+			</div>
+		  </div>
+		</div>
+	</div>
+
+	<div class='col-xs-12'>
+		<div class="panel panel-default">
+		  <div class="panel-body">
+			<% var i= 1; %>
+			<% for (var property in references) { %>
+				<div class='row'>
+					<div class='col-xs-12'>
+						<h4 class='capitalize inline'><%= references[property].remotefield %> of <%= property %></h4>
+						<div class="btn-group" role="group" aria-label="...">
+							<% var btns=  buttons[i].buttons%>
+							<% for (var j =0 ; j<btns.length ; j++ ) { %>
+								<button id="<%=btns[j].id%>" type="button" class="btn btn-default btn-sm <%=btns[j].class%>"><span class="glyphicon <%=btns[j].glyph%>" title=""></span><%=btns[j].label%></button>
+							<% } %>
+						</div>
+					</div>
+					<div class='col-xs-12'>
+					<%= references[property].html %>
+					</div>
+				</div>
+			<% i++;  } %>
+		  </div>
+		</div>
+	</div>
+	
+</div>
+<div class='mnow-list row'>
+	<div class='col-xs-12'>
+	</div>
+</div>

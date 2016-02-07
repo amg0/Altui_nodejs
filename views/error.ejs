@@ -1,0 +1,25 @@
+<!-- views/pages/index.ejs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <% include ../views/head %>
+</head>
+<body class="container">
+
+    <header>
+        <% include ../views/header %>
+    </header>
+
+    <main>
+		<h1><%= message %></h1>
+		<h2><%= error.status %></h2>
+		<pre><%= error.stack %></pre>
+    </main>
+
+    <footer>
+        <% include ../views/footer %>
+    </footer>
+    
+</body>
+</html>
