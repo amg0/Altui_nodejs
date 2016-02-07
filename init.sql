@@ -6,6 +6,8 @@
 
 USE altuiboxdb;
 SET sql_mode='STRICT_ALL_TABLES';
+SET GLOBAL sql_mode = 'ANSI';
+
 -- also set in /etc/mysql/my.conf file   sql-mode=STRICT_ALL_TABLES
 
 DROP TABLE  IF EXISTS rooms;
@@ -33,6 +35,22 @@ CREATE TABLE devices (
 INSERT INTO devices (id, name, device_type) VALUES
 (1, 'Temp toto' ,'urn:schemas-micasaverde-com:device:TemperatureSensor:1'),
 (2, 'Prise Sapin' ,'urn:schemas-upnp-org:device:BinaryLight:1');
+
+DROP TABLE  IF EXISTS states;
+
+CREATE TABLE states (
+  id int unsigned NOT NULL AUTO_INCREMENT,
+  deviceid int unsigned NOT NULL,
+  service varchar(200) NOT NULL,
+  `variable` varchar(50) NOT NULL,	-- backquote for escping reserved names
+  `value` varchar(50) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+
+INSERT INTO states (id, deviceid, service, `variable`, `value` ) VALUES
+(1, 1, 'urn:upnp-org:serviceId:TemperatureSensor1' ,'CurrentTemperature', 15),
+(2, 2, 'urn:upnp-org:serviceId:SwitchPower1' ,'Target', 1),
+(3, 2, 'urn:upnp-org:serviceId:SwitchPower1' ,'Status', 1);
 
 
 DROP TABLE  IF EXISTS scenes;

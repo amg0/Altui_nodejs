@@ -1,4 +1,4 @@
-//# sourceURL=api_users.js
+//# sourceURL=api_engine.js
 // "use strict";
 var express = require('express');
 var winston = require("winston");	// logging functionality
@@ -107,15 +107,28 @@ router
 	.get('/', function(req, res, next) {
 		var filters = req.query.filters;
 		var columns = req.query.columns;
-		dal.listAll('devices', columns , filters, function (err, devices, fields) {
+		dal.listAll('devices', null, columns , filters, function (params, err, devices, fields) {
 			_user_data.devices = devices;
-			dal.listAll('rooms', columns , filters, function (err, rooms, fields) {
+			dal.listAll('rooms', null, columns , filters, function (params,err, rooms, fields) {
 				_user_data.rooms = rooms;
-				dal.listAll('scenes', columns , filters, function (err, scenes, fields) {
+				dal.listAll('scenes', null, columns , filters, function (params,err, scenes, fields) {
 					_user_data.scenes = scenes;
-					dal.listAll('categories', columns , filters, function (err, categories, fields) {
+					dal.listAll('categories', null, columns , filters, function (params,err, categories, fields) {
 						_user_data.categories = categories;
-						res.send(_user_data);
+						var _todo = devices.length;
+						if (_todo==0)
+							res.send(_user_data);
+						for( var i=0 ; i<devices.length; i++ ) {
+							var idx = i;
+							dal.listAll('states', idx, columns , [ "deviceid="+devices[idx].id ], function (params, err, states, fields) {
+								winston.info('result states:%s',JSON.stringify(states));
+								winston.info('result param:%s',params);
+								devices[params].states = states;
+								_todo--;
+								if (_todo==0)
+									res.send(_user_data);
+							} );
+						}
 					});
 				});
 			});

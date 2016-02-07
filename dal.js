@@ -7,7 +7,7 @@ var mysql = require("mysql");		// mysql access
 var genericdal = require("./genericdal");
 var pool  = null;
 
-var tables = ['devices','rooms','scenes','categories'];
+var tables = ['devices','rooms','scenes','categories','states'];
 var dals = {};
 
 exports.init = function(callback) {
@@ -41,17 +41,17 @@ exports.exit = function( callback ) {
 	});
 }
 
-exports.listAll = function(type, fields, filters, callback) {
+exports.listAll = function(type, params, fields, filters, callback) {
 	pool.getConnection(function(err, connection) {
 		// connected! (unless `err` is set)
 		if (err) {
 			winston.error('Error connecting to Db');
-			(callback)(err);
+			(callback)(params, err);
 		} else {
 			// winston.info('connected as id ' + connection.threadId);
-			dals[type].listAll(connection, fields, filters, function(error,results, fields) {
+			dals[type].listAll(connection, params, fields, filters, function(params,error,results, fields) {
 				connection.release();
-				(callback)(error,results, fields);
+				(callback)(params, error,results, fields);
 			});
 		}
 	});

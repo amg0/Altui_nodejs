@@ -8,7 +8,7 @@ module.exports = function(tablename) {
 	var _tablename = tablename;
 	winston.info('init generic DAL for "%s" ',_tablename);
 	return {
-		listAll : function(con,fields,filters,callback) {
+		listAll : function(con,params,fields,filters,callback) {
 			var filterstr = "";
 			var sql = 'SELECT * FROM '+_tablename;
 			if (fields && fields.length>0)
@@ -22,7 +22,7 @@ module.exports = function(tablename) {
 			winston.info('listAll SQL:%s',sql);
 			con.query(sql, function(error, results, fields){
 				if (error) winston.error(error);
-				(callback)(error, results, fields);
+				(callback)(params,error, results, fields);
 			});					
 		},
 		get : function( con,object , callback ) {

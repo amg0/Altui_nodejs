@@ -1,4 +1,4 @@
-//# sourceURL=api_projects.js
+//# sourceURL=api_rooms.js
 // "use strict";
 var express = require('express');
 var winston = require("winston");	// logging functionality
@@ -19,7 +19,7 @@ router
 	.get('/', function(req, res, next) {
 		var filters = req.query.filters;
 		var columns = req.query.columns;
-		dal.listAll( 'rooms', columns , filters, function (err, results, fields) {
+		dal.listAll( 'rooms', null, columns , filters, function (params, err, results, fields) {
 			res.send(results);
 		});
 	})
