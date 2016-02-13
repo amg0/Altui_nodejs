@@ -1526,7 +1526,11 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		console.log( stack );
 		return null;  
 	};
-	
+
+			// if (bFirst)
+				// EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
+			// EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);
+			
 	function _refreshEngine() {
 		// start the polling loop to get user_data
 		var jqxhr = $.ajax( {
@@ -1536,12 +1540,16 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			dataType : 'json'
 		})
 		.done(function(data) {
+			var bFirst = ( _user_data=={} );
 			_user_data = $.extend(true,{},data);
 			//assigns altuiids
 			_asyncResponse(_user_data.devices);
 			_asyncResponse(_user_data.scenes);
 			_asyncResponse(_user_data.rooms);
 			_dataEngine = setTimeout( _refreshEngine, 2000 );
+			if (bFirst)
+				EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
+			EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);
 		})
 		.fail(function(jqXHR, textStatus) {
 			_user_data = {};
@@ -1643,6 +1651,16 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		}
 		return null;
 	};
+
+	function _getBoxInfo() {
+		return {
+			PK_AccessPoint: _user_data.PK_AccessPoint,
+			BuildVersion: _user_data.BuildVersion,
+			City_description: _user_data.City_description,
+			Region_description: _user_data.Region_description,
+			Country_description: _user_data.Country_description
+		};
+	};
   // explicitly return public methods when this object is instantiated
   return {
 	//---------------------------------------------------------
@@ -1657,7 +1675,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getIcon			: _todo, 		// workaround to get image from vera box
 	getWeatherSettings : _todo,
 	isUI5			: function() 	{return false},				
-	getBoxInfo		: _todo,				//()
+	getBoxInfo		: _getBoxInfo,				//()
 	getBoxFullInfo	: _getBoxFullInfo,		//()
 	getLuaStartup 	: _todo,
     getRooms		: _getRooms,	// in the future getRooms could cache the information and only call _getRooms when needed
