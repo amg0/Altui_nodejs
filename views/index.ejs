@@ -1,30 +1,74 @@
-<!-- views/pages/index.ejs -->
-
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
+    <meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<!-- Latest compiled and minified CSS -->
     <% include ../views/head %>
+    <title>VERA AltUI</title>
 </head>
-<body class="container">
 
-    <header>
-        <% include ../views/header %>
-    </header>
-	<div id='dialogs'></div>
-    <main>
-        <div class="jumbotron">
-            <h1>This is great</h1>
-            <p>Welcome to templating using EJS</p>
-        </div>
-    </main>
+<body role="document">
+	<script type='text/javascript' >
+		// BROWSER DETECTION
+		var userAgent = navigator.userAgent.toLowerCase();
+		var mybrowser = {
+		   version: (userAgent.match( /.+(?:rv|it|ra|ie|me)[\/: ]([\d.]+)/ ) || [])[1],
+		   chrome: /chrome/.test( userAgent ),
+		   safari: /webkit/.test( userAgent ) && !/chrome/.test( userAgent ),
+		   opera: /opera/.test( userAgent ),
+		   msie: /msie/.test( userAgent ) && !/opera/.test( userAgent ),
+		   mozilla: /mozilla/.test( userAgent ) && !/(compatible|webkit)/.test( userAgent )
+		};
 
-    <footer>
-        <% include ../views/footer %>
-    </footer>
-    
-	<script src='/javascripts/Utils.js'></script>
-	<script src='/javascripts/DBModel.js'></script>
-	<script src='/javascripts/DialogManager.js'></script>
-	<script src='/javascripts/UIManager.js'></script>
+		if ( (mybrowser['msie']==true)  && (parseFloat(mybrowser['version']) <=9)) 
+		{
+			document.writeln('<span>Sorry !! Your Browser is too old, you need to upgrade to a recent browser supporting <b>HTML5</b> like:<ul><li>Chrome</li><li>Firefox</li><li>IE 10,11,...</li></ul></span>');
+		}
+		
+		function _executeFunctionByName(functionName, context , device, extraparam) {
+			var namespaces = functionName.split(".");
+			var func = namespaces.pop();
+			for (var i = 0; i < namespaces.length; i++) {
+				context = context[ namespaces[i] ];
+			}
+			return context[func].call(context, device, extraparam);
+		};
+
+		function _loadStyle(styleFunctionName) {
+			var title = document.getElementsByTagName('title')[0];
+			var style = document.createElement('style');
+			style.type = 'text/css';
+			var css = _executeFunctionByName(styleFunctionName, window);
+			style.appendChild(document.createTextNode(css));
+			title.parentNode.insertBefore(style,title);	
+	
+		};
+	</script>
+
+    <!-- Bootstrap core JavaScript    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+
+	<script type='text/javascript' defer >
+	<!--
+		google.setOnLoadCallback(drawVisualization);
+		function drawVisualization() {
+			//console.log('google loaded');
+		};
+		var g_DeviceTypes =  JSON.parse('@devicetypes@');
+		var g_CustomPages = @custompages@;
+		var g_CustomTheme = '@ThemeCSS@';
+		var g_OrgTheme = g_CustomTheme;
+		var g_MyDeviceID = @mydeviceid@;
+		var g_Options = '@ServerOptions@';
+		var g_ExtraController = '@extracontroller@';
+		var g_FirstUserData = @firstuserdata@;
+		// -->
+	</script>
+	<div id="wrap"></div>
+	<footer id="footer"><hr><p class="text-center"><small id="altui-footer">AltUI, amg0, <span class="bg-danger">Waiting Initial Data</span></small></p><span id="debug"></span></footer>
 </body>
 </html>
