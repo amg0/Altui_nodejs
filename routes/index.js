@@ -1,10 +1,15 @@
 //# sourceURL=index.js
 // "use strict";
+var winston = require("winston");	// logging functionality
 var express = require('express');
+var config = require('../config');
 var router = express.Router();
+
 var ALTUI_SERVICE = "urn:schemas-upnp-org:service:altui:1";
 
 /* GET home page. */
+winston.info('xxxxxxxxx test xxxxxxxxxxxxx');
+winston.info('config:'+JSON.stringify(config));
 router.get('/', function(req, res, next) {
 	var model = { 
 		title: 'Express',
@@ -14,10 +19,10 @@ router.get('/', function(req, res, next) {
 		ServerOptions: '',
 		extracontroller: "",
 		firstuserdata: "",
-		jspath: "javascripts/",
+		jspath: config.jspath,
 		devicetypes: {
 		  "info": {
-				"controllerType" : "AltuiBox",
+				"controllerType" : config.controllerType,
 				"ui7Check" : "1",	// luup.variable_get(ALTUI_SERVICE, "UI7Check", deviceID) or "",
 				"debug" : "0",		// luup.variable_get(ALTUI_SERVICE, "Debug", newDebugMode, lul_device)
 				"PluginVersion" : "0.1",	// luup.variable_get(ALTUI_SERVICE, "Version", deviceID) or "",

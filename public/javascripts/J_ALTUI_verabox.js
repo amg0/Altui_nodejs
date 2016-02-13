@@ -1661,6 +1661,35 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			Country_description: _user_data.Country_description
 		};
 	};
+	
+	function _getUsers(func , filterfunc, endfunc ) {
+		if (_user_data.users !=null )
+			_asyncResponse( _user_data.users.sort(altuiSortByName2), func , filterfunc, endfunc);
+		return _user_data.users;
+	};
+	function _getUsersSync() {
+		return _user_data.users;
+	};
+	function _getUserByID(userid) {
+		var user=null;
+		if ( _user_data.users ) {
+			$.each(_user_data.users, function( idx,usr) {
+				if (usr.id==userid) {
+					user = usr;
+					return false;
+				}
+			});
+		}
+		return user;
+	};
+	
+	function _getWeatherSettings()
+	{
+		var target = {tempFormat: "", weatherCountry: "", weatherCity: ""};
+		$.extend(target, _user_data.weatherSettings);
+		return target;
+	};
+	
   // explicitly return public methods when this object is instantiated
   return {
 	//---------------------------------------------------------
@@ -1673,7 +1702,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	triggerAltUIUpgrade : _todo,	// (suffix,newrev)  : newrev number in TRAC
 	getIconPath		: _todo,		// ( src )
 	getIcon			: _todo, 		// workaround to get image from vera box
-	getWeatherSettings : _todo,
+	getWeatherSettings : _getWeatherSettings,
 	isUI5			: function() 	{return false},				
 	getBoxInfo		: _getBoxInfo,				//()
 	getBoxFullInfo	: _getBoxFullInfo,		//()
@@ -1703,9 +1732,9 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getNewSceneID	: _todo,
 	getPlugins		: _todo,
 	getPluginByID 	: _todo,
-	getUsers		: _todo,
-	getUsersSync	: _todo,
-	getUserByID		: _todo,
+	getUsers		: _getUsers,
+	getUsersSync	: _getUsersSync,
+	getUserByID		: _getUserByID,
 	getHouseMode	: _todo,
 	setHouseMode	: _todo,
 	getHouseModeSwitchDelay : _todo,
