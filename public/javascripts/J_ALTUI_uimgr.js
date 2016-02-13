@@ -3529,7 +3529,7 @@ var UIManager  = ( function( window, undefined ) {
 		var head = document.getElementsByTagName('head')[0];
 		var script = document.createElement('script');
 		script.type = 'text/javascript';
-		script.src = scriptLocationAndName;
+		script.src = g_jspath + scriptLocationAndName;
 		script.setAttribute("data-src", scriptLocationAndName);
 
 		// once script is loaded, we can call style function in it
@@ -11258,7 +11258,7 @@ $(document).ready(function() {
 		
 		UIManager.initEngine(styles.format(window.location.hostname), g_DeviceTypes, g_CustomTheme, g_Options, function() {
 			UIManager.initCustomPages(g_CustomPages);	
-			MultiBox.initEngine(g_ExtraController,g_FirstUserData);
+			MultiBox.initEngine(g_ExtraController,g_FirstUserData,g_DeviceTypes.info["controllerType"]);
 			EventBus.publishEvent("on_ui_initFinished");
 		});
 	};
@@ -11279,7 +11279,7 @@ $(document).ready(function() {
 	// if lang is on the url, the js is already loaded by the LUA module. 
 	if ( (language.substring(0, 2) != 'en') && (getQueryStringValue("lang")=="") ){
 	// if (false) {
-		var scriptLocationAndName = 'J_ALTUI_loc_'+ language.substring(0, 2) + '.js' ;
+		var scriptLocationAndName = g_jspath + 'J_ALTUI_loc_'+ language.substring(0, 2) + '.js' ;
 		var head = document.getElementsByTagName('head')[0];
 		var script = document.createElement('script');
 		script.type = 'text/javascript';

@@ -962,6 +962,7 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 				local result = luup.variable_get(ALTUI_SERVICE, "PluginConfig", deviceID)
 				local tbl = json.decode(result)
 				tbl ["info"] = {
+					["controllerType"] = "VeraBox",
 					["ui7Check"] = luup.variable_get(ALTUI_SERVICE, "UI7Check", deviceID) or "",
 					["debug"] = DEBUG_MODE,
 					["PluginVersion"] = luup.variable_get(ALTUI_SERVICE, "Version", deviceID) or "",

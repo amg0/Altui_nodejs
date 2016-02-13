@@ -84,3 +84,630 @@
 {"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:30:20.528Z"}
 {"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:30:20.528Z"}
 {"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:30:20.528Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:40:35.218Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:40:35.221Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:40:35.221Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:40:35.221Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:40:35.222Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:40:35.222Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T18:40:41.115Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T18:40:41.120Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T18:40:41.121Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T18:40:41.122Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T18:40:41.127Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T18:40:41.128Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T18:40:41.128Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T18:40:41.129Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T18:40:41.130Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T18:40:41.130Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T18:40:41.131Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T18:40:41.132Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T18:40:41.132Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:47:55.045Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:47:55.047Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:47:55.048Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:47:55.048Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:47:55.048Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:47:55.049Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:52:23.790Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:52:23.792Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:52:23.792Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:52:23.792Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:52:23.792Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:52:23.793Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:57:03.764Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:57:03.767Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:57:03.767Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:57:03.768Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:57:03.768Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:57:03.768Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T19:18:02.681Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T19:18:02.685Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T19:18:02.686Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T19:18:02.687Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T19:18:02.687Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T19:18:02.687Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T19:25:06.862Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T19:25:06.864Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T19:25:06.865Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T19:25:06.865Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T19:25:06.866Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T19:25:06.866Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T19:25:54.324Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T19:25:54.326Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T19:25:54.327Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T19:25:54.327Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T19:25:54.327Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T19:25:54.328Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:26:45.199Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:26:45.205Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:26:45.207Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:26:45.208Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:26:45.211Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:26:45.212Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:26:45.212Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:26:45.213Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:26:45.213Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:26:45.214Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:26:45.217Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:26:45.218Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:26:45.218Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:26:59.096Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:26:59.100Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:26:59.101Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:26:59.102Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:26:59.111Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:26:59.111Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:26:59.113Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:26:59.114Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:26:59.114Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:26:59.115Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:26:59.115Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:26:59.115Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:26:59.115Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:01.127Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:01.132Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:01.135Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:01.138Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:01.140Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:01.141Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:01.142Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:01.142Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:01.142Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:01.142Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:01.142Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:01.143Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:01.143Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:03.154Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:03.157Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:03.159Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:03.162Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:03.165Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:03.166Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:03.166Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:03.166Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:03.166Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:03.167Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:03.167Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:03.168Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:03.168Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:05.178Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:05.180Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:05.184Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:05.191Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:05.192Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:05.192Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:05.192Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:05.193Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:05.194Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:05.194Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:05.194Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:05.197Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:05.197Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:07.210Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:07.213Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:07.216Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:07.221Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:07.222Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:07.222Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:07.222Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:07.223Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:07.223Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:07.223Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:07.223Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:07.224Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:07.224Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:09.230Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:09.231Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:09.232Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:09.235Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:09.238Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:09.239Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:09.239Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:09.240Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:09.240Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:09.240Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:09.240Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:09.240Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:09.240Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:11.251Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:11.252Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:11.254Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:11.257Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:11.258Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:11.259Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:11.259Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:11.260Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:11.260Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:11.260Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:11.260Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:11.260Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:11.261Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:13.266Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:13.266Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:13.267Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:13.268Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:13.268Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:13.269Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:13.269Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:13.270Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:13.270Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:13.270Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:13.270Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:13.271Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:13.271Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:15.276Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:15.280Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:15.281Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:15.291Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:15.293Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:15.293Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:15.293Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:15.294Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:15.295Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:15.297Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:15.297Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:15.297Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:15.298Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:17.302Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:17.303Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:17.305Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:17.306Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:17.307Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:17.307Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:17.308Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:17.308Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:17.309Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:17.309Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:17.309Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:17.310Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:17.310Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:19.322Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:19.323Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:19.324Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:19.325Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:19.327Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:19.327Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:19.328Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:19.329Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:19.329Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:19.329Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:19.330Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:19.332Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:19.332Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:21.338Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:21.339Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:21.340Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:21.342Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:21.343Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:21.344Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:21.344Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:21.345Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:21.345Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:21.345Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:21.345Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:21.346Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:21.346Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:23.351Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:23.353Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:23.354Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:23.355Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:23.356Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:23.356Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:23.356Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:23.357Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:23.357Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:23.358Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:23.358Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:23.358Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:23.358Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:25.366Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:25.367Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:25.369Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:25.370Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:25.371Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:25.372Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:25.373Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:25.373Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:25.378Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:25.379Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:25.379Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:25.380Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:25.380Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:27.387Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:27.388Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:27.389Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:27.391Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:27.393Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:27.393Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:27.394Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:27.394Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:27.394Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:27.394Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:27.394Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:27.395Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:27.395Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:29.402Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:29.404Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:29.405Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:29.407Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:29.409Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:29.410Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:29.410Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:29.416Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:29.416Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:29.416Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:29.416Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:29.416Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:29.416Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:31.423Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:31.424Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:31.426Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:31.428Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:31.430Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:31.431Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:31.431Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:31.432Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:31.433Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:31.434Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:31.434Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:31.434Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:31.435Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:33.448Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:33.452Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:33.453Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:33.453Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:33.454Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:33.455Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:33.461Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:33.462Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:33.462Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:33.464Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:33.464Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:33.464Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:33.464Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:35.473Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:35.488Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:35.491Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:35.491Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:35.492Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:35.495Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:35.495Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:35.495Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:35.496Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:35.496Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:35.496Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:35.497Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:35.497Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:37.507Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:37.510Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:37.512Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:37.515Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:37.516Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:37.516Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:37.516Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:37.517Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:37.517Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:37.517Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:37.517Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:37.518Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:37.518Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:39.528Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:39.530Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:39.533Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:39.542Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:39.543Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:39.543Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:39.544Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:39.544Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:39.545Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:39.545Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:39.545Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:39.545Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:39.545Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:41.556Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:41.559Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:41.561Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:41.565Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:41.566Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:41.567Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:41.567Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:41.568Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:41.568Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:41.568Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:41.569Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:41.569Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:41.569Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:43.579Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:43.581Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:43.591Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:43.591Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:43.594Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:43.595Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:43.595Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:43.596Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:43.596Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:43.596Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:43.596Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:43.597Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:43.597Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:45.609Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:45.614Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:45.617Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:45.618Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:45.619Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:45.620Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:45.620Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:45.620Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:45.620Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:45.621Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:45.621Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:45.621Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:45.621Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:47.632Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:47.634Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:47.636Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:47.640Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:47.641Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:47.641Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:47.642Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:47.642Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:47.642Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:47.643Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:47.643Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:47.643Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:47.643Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:49.653Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:49.655Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:49.658Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:49.661Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:49.664Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:49.665Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:49.665Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:49.666Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:49.666Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:49.666Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:49.667Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:49.667Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:49.667Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:51.676Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:51.676Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:51.677Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:51.677Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:51.678Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:51.678Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:51.679Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:51.679Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:51.679Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:51.682Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:51.682Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:51.683Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:51.683Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:53.692Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:53.704Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:53.705Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:53.705Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:53.706Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:53.707Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:53.707Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:53.707Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:53.708Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:53.708Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:53.708Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:53.709Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:53.709Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:55.718Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:55.721Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:55.724Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:55.726Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:55.726Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:55.727Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:55.727Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:55.728Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:55.728Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:55.728Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:55.730Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:55.732Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:55.732Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:57.741Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:57.744Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:57.746Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:57.749Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:57.750Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:57.751Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:57.751Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:57.752Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:57.752Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:57.752Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:57.752Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:57.753Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:57.753Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:27:59.762Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:27:59.764Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:27:59.767Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:27:59.769Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:27:59.776Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:27:59.776Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:27:59.776Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:27:59.777Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:27:59.777Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:27:59.777Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:27:59.777Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:27:59.777Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:27:59.777Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:01.788Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:01.794Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:01.796Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:01.799Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:01.801Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:01.801Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:01.801Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:01.802Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:01.802Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:01.802Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:01.802Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:01.802Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:01.802Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:03.815Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:03.818Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:03.820Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:03.822Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:03.825Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:03.826Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:03.826Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:03.827Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:03.827Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:03.827Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:03.827Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:03.827Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:03.827Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:05.836Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:05.839Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:05.841Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:05.843Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:05.846Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:05.848Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:05.849Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:05.850Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:05.850Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:05.851Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:05.851Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:05.851Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:05.851Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:07.861Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:07.863Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:07.865Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:07.868Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:07.870Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:07.872Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:07.874Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:07.875Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:07.875Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:07.875Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:07.875Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:07.876Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:07.876Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:09.885Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:09.889Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:09.891Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:09.893Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:09.896Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:09.898Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:09.899Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:09.900Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:09.901Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:09.901Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:09.901Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:09.901Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:09.901Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:11.906Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:11.907Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:11.907Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:11.908Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:11.909Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:11.910Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:11.910Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:11.910Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:11.910Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:11.911Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:11.911Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:11.911Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:11.911Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:13.922Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:13.924Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:13.927Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:13.929Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:13.932Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:13.934Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:13.935Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:13.935Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:13.935Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:13.936Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:13.936Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:13.936Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:13.936Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:15.951Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:15.954Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:15.956Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:15.958Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:15.961Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:15.961Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:15.961Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:15.962Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:15.962Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:15.962Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:15.962Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:15.962Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:15.963Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:17.971Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:17.974Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:17.977Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:17.979Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:17.982Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:17.983Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:17.985Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:17.985Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:17.986Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:17.986Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:17.986Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:17.986Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:17.986Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:19.991Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:19.992Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:19.993Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:19.994Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:19.995Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:19.996Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:19.996Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:19.997Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:19.997Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:19.997Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:19.998Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:19.998Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:19.998Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:22.008Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:22.011Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:22.013Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:22.015Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:22.025Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:22.025Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:22.025Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:22.026Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:22.026Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:22.026Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:22.026Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:22.026Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:22.026Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T19:28:24.035Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T19:28:24.036Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T19:28:24.038Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T19:28:24.040Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=3)","timestamp":"2016-02-13T19:28:24.041Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T19:28:24.042Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T19:28:24.043Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":3,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T19:28:24.043Z"}
+{"level":"info","message":"result param:2","timestamp":"2016-02-13T19:28:24.044Z"}
+{"level":"info","message":"result states:[]","timestamp":"2016-02-13T19:28:24.044Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T19:28:24.044Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T19:28:24.045Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T19:28:24.045Z"}

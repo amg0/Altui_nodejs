@@ -119,7 +119,7 @@ var MultiBox = ( function( window, undefined ) {
 		return $.map( _controllers , function(o,i) {return name+"_"+i } );
 	};
 	
-	function _initEngine(extraController,firstuserdata) {
+	function _initEngine(extraController,firstuserdata, maincontrollertype) {
 		function _AllLoaded(eventname) {
 			switch(eventname) {
 				case "on_ui_userDataLoaded":
@@ -131,11 +131,20 @@ var MultiBox = ( function( window, undefined ) {
 			// console.log(eventname);
 			EventBus.publishEvent(eventname);
 		};
+		maincontrollertype = maincontrollertype || "VeraBox";
 		EventBus.waitForAll( "on_ui_userDataFirstLoaded", _getAllEvents("on_ui_userDataFirstLoaded"), this, _AllLoaded );
 		EventBus.waitForAll("on_ui_userDataLoaded", _getAllEvents("on_ui_userDataLoaded"), this, _AllLoaded );
 							
 		// initialize controller 0 right away, no need to wait					
-		_controllers[0].controller = new VeraBox(0,'');		// create the main controller
+		//
+		switch(maincontrollertype) {
+			case "AltuiBox":
+				_controllers[0].controller = new AltuiBox(0,'');		// create the main controller
+				break;
+			case "VeraBox":
+			default:
+				_controllers[0].controller = new VeraBox(0,'');		// create the main controller
+		}
 		_controllers[0].controller.initEngine( firstuserdata );
 		
 		// add the extra controllers

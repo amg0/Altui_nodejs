@@ -1515,8 +1515,8 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 
 var AltuiBox = ( function( uniq_id, ip_addr ) {
 	var _uniqID = uniq_id;		// assigned by Multibox, unique, can be used for Settings & other things
-	var _ip_addr = ip_addr;
-	var _altuibox_url = "//{0}".format(ip_addr);
+	var _ip_addr = (ip_addr=="") ? window.location.host : ip_addr;
+	var _altuibox_url = "//{0}".format(_ip_addr);
 	var _user_data = {};
 	var _dataEngine = null;
 
@@ -1524,7 +1524,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		console.log("TODO called , Call Stack=");
 		var stack = new Error().stack;
 		console.log( stack );
-		return null; 
+		return null;  
 	};
 	
 	function _refreshEngine() {
