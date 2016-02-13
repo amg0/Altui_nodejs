@@ -1,0 +1,86 @@
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T17:53:41.279Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T17:53:41.282Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T17:53:41.282Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T17:53:41.283Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T17:53:41.283Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T17:53:41.283Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T17:53:49.821Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T17:53:49.825Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T17:53:49.827Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T17:53:49.829Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T17:53:49.831Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":1,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T17:53:49.832Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T17:53:49.832Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T17:53:49.833Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T17:53:49.834Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T17:53:49.834Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM devices","timestamp":"2016-02-13T18:04:26.038Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM rooms","timestamp":"2016-02-13T18:04:26.041Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM scenes","timestamp":"2016-02-13T18:04:26.046Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM categories","timestamp":"2016-02-13T18:04:26.047Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=2)","timestamp":"2016-02-13T18:04:26.053Z"}
+{"level":"info","message":"listAll SQL:SELECT * FROM states WHERE (deviceid=1)","timestamp":"2016-02-13T18:04:26.054Z"}
+{"level":"info","message":"result states:[{\"id\":2,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Target\",\"value\":\"1\"},{\"id\":3,\"deviceid\":2,\"service\":\"urn:upnp-org:serviceId:SwitchPower1\",\"variable\":\"Status\",\"value\":\"1\"}]","timestamp":"2016-02-13T18:04:26.055Z"}
+{"level":"info","message":"result param:1","timestamp":"2016-02-13T18:04:26.055Z"}
+{"level":"info","message":"result states:[{\"id\":1,\"deviceid\":1,\"service\":\"urn:upnp-org:serviceId:TemperatureSensor1\",\"variable\":\"CurrentTemperature\",\"value\":\"15\"}]","timestamp":"2016-02-13T18:04:26.056Z"}
+{"level":"info","message":"result param:0","timestamp":"2016-02-13T18:04:26.056Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:12:10.969Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:12:10.971Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:12:10.972Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:12:10.972Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:12:10.972Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:12:10.972Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:13:11.535Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:13:11.537Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:13:11.538Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:13:11.538Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:13:11.538Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:13:11.538Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:14:08.022Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:14:08.024Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:14:08.024Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:14:08.025Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:14:08.025Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:14:08.025Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:15:15.332Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:15:15.334Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:15:15.334Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:15:15.334Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:15:15.335Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:15:15.335Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:16:28.651Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:16:28.653Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:16:28.653Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:16:28.654Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:16:28.654Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:16:28.654Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:16:57.711Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:16:57.714Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:16:57.714Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:16:57.714Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:16:57.714Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:16:57.715Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:18:16.529Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:18:16.532Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:18:16.532Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:18:16.533Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:18:16.533Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:18:16.533Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:21:00.162Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:21:00.165Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:21:00.165Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:21:00.165Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:21:00.166Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:21:00.166Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:23:08.242Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:23:08.244Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:23:08.245Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:23:08.245Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:23:08.245Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:23:08.245Z"}
+{"level":"info","message":"initialize DAL & pool","timestamp":"2016-02-13T18:30:20.525Z"}
+{"level":"info","message":"init generic DAL for \"devices\" ","timestamp":"2016-02-13T18:30:20.527Z"}
+{"level":"info","message":"init generic DAL for \"rooms\" ","timestamp":"2016-02-13T18:30:20.527Z"}
+{"level":"info","message":"init generic DAL for \"scenes\" ","timestamp":"2016-02-13T18:30:20.528Z"}
+{"level":"info","message":"init generic DAL for \"categories\" ","timestamp":"2016-02-13T18:30:20.528Z"}
+{"level":"info","message":"init generic DAL for \"states\" ","timestamp":"2016-02-13T18:30:20.528Z"}

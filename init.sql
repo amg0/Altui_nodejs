@@ -33,8 +33,9 @@ CREATE TABLE devices (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
 INSERT INTO devices (id, name, device_type) VALUES
-(1, 'Temp toto' ,'urn:schemas-micasaverde-com:device:TemperatureSensor:1'),
-(2, 'Prise Sapin' ,'urn:schemas-upnp-org:device:BinaryLight:1');
+(1, 'ALTUI' ,'urn:schemas-upnp-org:device:altui:1'),
+(2, 'Temp toto' ,'urn:schemas-micasaverde-com:device:TemperatureSensor:1'),
+(3, 'Prise Sapin' ,'urn:schemas-upnp-org:device:BinaryLight:1');
 
 DROP TABLE  IF EXISTS states;
 
@@ -48,9 +49,9 @@ CREATE TABLE states (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
 INSERT INTO states (id, deviceid, service, `variable`, `value` ) VALUES
-(1, 1, 'urn:upnp-org:serviceId:TemperatureSensor1' ,'CurrentTemperature', 15),
-(2, 2, 'urn:upnp-org:serviceId:SwitchPower1' ,'Target', 1),
-(3, 2, 'urn:upnp-org:serviceId:SwitchPower1' ,'Status', 1);
+(1, 2, 'urn:upnp-org:serviceId:TemperatureSensor1' ,'CurrentTemperature', 15),
+(2, 3, 'urn:upnp-org:serviceId:SwitchPower1' ,'Target', 1),
+(3, 3, 'urn:upnp-org:serviceId:SwitchPower1' ,'Status', 1);
 
 
 DROP TABLE  IF EXISTS scenes;
