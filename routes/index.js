@@ -25,7 +25,7 @@ router.get('/', function(req, res, next) {
 				"controllerType" : config.controllerType,
 				"ui7Check" : "1",	// luup.variable_get(ALTUI_SERVICE, "UI7Check", deviceID) or "",
 				"debug" : "0",		// luup.variable_get(ALTUI_SERVICE, "Debug", newDebugMode, lul_device)
-				"PluginVersion" : "0.1",	// luup.variable_get(ALTUI_SERVICE, "Version", deviceID) or "",
+				"PluginVersion" : config.version,	// luup.variable_get(ALTUI_SERVICE, "Version", deviceID) or "",
 				"RemoteAccess" : ""			// luup.variable_get(ALTUI_SERVICE, "RemoteAccess", deviceID) or ""
 		  },
 		  "urn:schemas-micasaverde-com:device:PowerMeter:1": {

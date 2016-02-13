@@ -2,7 +2,8 @@
 // "use strict";
 
 module.exports = {
-	jspath: "javascripts/",
-	controllerType: "AltuiBox",
-	mainUser: "amg0"
+	version			: "0.1",
+	jspath			: "javascripts/",
+	controllerType	: "AltuiBox",
+	mainUser		: "amg0"
 }
