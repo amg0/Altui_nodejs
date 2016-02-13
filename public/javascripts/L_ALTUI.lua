@@ -10,7 +10,7 @@ local MSG_CLASS = "ALTUI"
 local ALTUI_SERVICE = "urn:upnp-org:serviceId:altui1"
 local devicetype = "urn:schemas-upnp-org:device:altui:1"
 local DEBUG_MODE = false
-local version = "v1.12"
+local version = "v1.13"
 local UI7_JSON_FILE= "D_ALTUI_UI7.json"
 local json = require("dkjson")
 if (type(json) == "string") then
@@ -723,6 +723,7 @@ local htmlLayout = [[
 		var g_Options = '@ServerOptions@';
 		var g_ExtraController = '@extracontroller@';
 		var g_FirstUserData = @firstuserdata@;
+		var g_jspath = '';
 		// -->
 	</script>
 	<div id="wrap"></div>
