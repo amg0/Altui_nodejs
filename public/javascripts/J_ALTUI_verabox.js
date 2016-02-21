@@ -1689,13 +1689,58 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		$.extend(target, _user_data.weatherSettings);
 		return target;
 	};
-	function _getHouseMode(cbfunc)
+	function _getVariable(variable, cbfunc)
 	{
-		var deferred = $.Deferred();
-		deferred.resolve( _user_data.Mode || "1" )
-		if ($.isFunction(cbfunc))
-			(cbfunc)(_user_data.Mode || "1");
-		return deferred.promise();	
+		var jqxhr = $.ajax( {
+			url: _altuibox_url+"/api/variables/"+variable,
+			type: "GET",
+			cache: false,
+			dataType : 'json'
+		})
+		.done(function(data, textStatus, jqXHR) {
+			if ($.isFunction(cbfunc))
+				(cbfunc)(data.value || "1");
+		})
+		.fail(function(jqXHR, textStatus, errorThrown) {
+			if ($.isFunction(cbfunc))
+				(cbfunc)(null);
+		})
+		.always(function() {
+		});		
+		return jqxhr;
+	};
+	function _setVariable(variable, value, cbfunc) {
+		var jqxhr = $.ajax( {
+			url: _altuibox_url+"/api/variables/"+variable,
+			type: "PUT",
+			cache: false,
+			data: {
+				json:JSON.stringify( { value:value } )
+			},
+		})
+		.done(function(data, textStatus, jqXHR) {
+			if ($.isFunction(cbfunc))
+				(cbfunc)(data);
+		})
+		.fail(function(jqXHR, textStatus, errorThrown) {
+			if ($.isFunction(cbfunc))
+				(cbfunc)(null);
+		})
+		.always(function() {
+		});		
+		return jqxhr;
+	};
+	function _getHouseMode(cbfunc) {
+		return _getVariable('Mode',cbfunc);
+	};
+	function _getHouseModeSwitchDelay() {
+		return ( parseInt(_user_data.mode_change_delay || 9) +3);
+	};
+	function _setHouseMode(newmode,cbfunc) {
+		if ((newmode<=4) && (newmode>=1)) {
+			return _setVariable('Mode',newmode,cbfunc);
+		}
+		return null;
 	};
   // explicitly return public methods when this object is instantiated
   return {
@@ -1743,8 +1788,8 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getUsersSync	: _getUsersSync,
 	getUserByID		: _getUserByID,
 	getHouseMode	: _getHouseMode,
-	setHouseMode	: _todo,
-	getHouseModeSwitchDelay : _todo,
+	setHouseMode	: _setHouseMode,
+	getHouseModeSwitchDelay : _getHouseModeSwitchDelay,
 	setAttr			: _todo,
 	setStatus		: _todo,
 	getStatus		: _getStatus, //	( deviceid, service, variable )

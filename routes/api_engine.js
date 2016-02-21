@@ -70,7 +70,7 @@ var _user_data = {
   "PluginsSynced": "1",
   "mode_change_time": "",
   "mode_change_mode": "",
-  "Mode": "1",
+  // "Mode": "1",
   "energy_dev_log": "62,100,6,105,181,3,54,180,182,20,148,112,4,24,149,147,",
   "users": [
     {

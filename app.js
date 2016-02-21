@@ -8,6 +8,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var routes = require('./routes/index');
 var dal = require("./dal");		// data model mysql access
+var api_variables = require('./routes/api_variables');
 var api_devices = require('./routes/api_devices');
 var api_rooms = require('./routes/api_rooms');
 var api_engine = require('./routes/api_engine');
@@ -41,6 +42,7 @@ app.use('/views',express.static(path.join(__dirname, 'views')));
 // To serve Routes
 dal.init( function(err) {
 	app.use('/', routes);
+	app.use('/api/variables', api_variables);
 	app.use('/api/engine_data', api_engine);
 	app.use('/api/devices', api_devices);
 	app.use('/api/rooms', api_rooms);

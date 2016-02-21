@@ -9,6 +9,16 @@ SET sql_mode='STRICT_ALL_TABLES';
 SET GLOBAL sql_mode = 'ANSI';
 
 -- also set in /etc/mysql/my.conf file   sql-mode=STRICT_ALL_TABLES
+DROP TABLE  IF EXISTS variables;
+
+CREATE TABLE variables (
+  id varchar(50) NOT NULL,
+  `value` varchar(200) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+
+INSERT INTO variables (id, value) VALUES
+('Mode','1');
 
 DROP TABLE  IF EXISTS rooms;
 
