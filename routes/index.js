@@ -8,8 +8,7 @@ var router = express.Router();
 var ALTUI_SERVICE = "urn:schemas-upnp-org:service:altui:1";
 
 /* GET home page. */
-winston.info('xxxxxxxxx test xxxxxxxxxxxxx');
-winston.info('config:'+JSON.stringify(config));
+// winston.info('config:'+JSON.stringify(config));
 router.get('/', function(req, res, next) {
 	var model = { 
 		title: 'Express',
@@ -23,7 +22,7 @@ router.get('/', function(req, res, next) {
 		devicetypes: {
 		  "info": {
 				"controllerType" : config.controllerType,
-				"ui7Check" : "1",	// luup.variable_get(ALTUI_SERVICE, "UI7Check", deviceID) or "",
+				"ui7Check" : "true",	// luup.variable_get(ALTUI_SERVICE, "UI7Check", deviceID) or "",
 				"debug" : "0",		// luup.variable_get(ALTUI_SERVICE, "Debug", newDebugMode, lul_device)
 				"PluginVersion" : config.version,	// luup.variable_get(ALTUI_SERVICE, "Version", deviceID) or "",
 				"RemoteAccess" : ""			// luup.variable_get(ALTUI_SERVICE, "RemoteAccess", deviceID) or ""

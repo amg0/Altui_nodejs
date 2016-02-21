@@ -121,8 +121,8 @@ router
 						for( var i=0 ; i<devices.length; i++ ) {
 							var idx = i;
 							dal.listAll('states', idx, columns , [ "deviceid="+devices[idx].id ], function (params, err, states, fields) {
-								winston.info('result states:%s',JSON.stringify(states));
-								winston.info('result param:%s',params);
+								// winston.info('result states:%s',JSON.stringify(states));
+								// winston.info('result param:%s',params);
 								devices[params].states = states;
 								_todo--;
 								if (_todo==0)

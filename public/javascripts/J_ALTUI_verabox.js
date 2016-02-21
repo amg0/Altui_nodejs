@@ -1546,7 +1546,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			_asyncResponse(_user_data.devices);
 			_asyncResponse(_user_data.scenes);
 			_asyncResponse(_user_data.rooms);
-			_dataEngine = setTimeout( _refreshEngine, 2000 );
+			_dataEngine = setTimeout( _refreshEngine, 3000 );
 			if (bFirst)
 				EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
 			EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);
@@ -1689,7 +1689,14 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		$.extend(target, _user_data.weatherSettings);
 		return target;
 	};
-	
+	function _getHouseMode(cbfunc)
+	{
+		var deferred = $.Deferred();
+		deferred.resolve( _user_data.Mode || "1" )
+		if ($.isFunction(cbfunc))
+			(cbfunc)(_user_data.Mode || "1");
+		return deferred.promise();	
+	};
   // explicitly return public methods when this object is instantiated
   return {
 	//---------------------------------------------------------
@@ -1735,7 +1742,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getUsers		: _getUsers,
 	getUsersSync	: _getUsersSync,
 	getUserByID		: _getUserByID,
-	getHouseMode	: _todo,
+	getHouseMode	: _getHouseMode,
 	setHouseMode	: _todo,
 	getHouseModeSwitchDelay : _todo,
 	setAttr			: _todo,

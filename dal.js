@@ -1,6 +1,7 @@
 //# sourceURL=dal.js
 // "use strict";
 
+var config = require('./config');
 var winston = require("winston");	// logging functionality
 winston.add(winston.transports.File, { filename: 'output.log' });
 var mysql = require("mysql");		// mysql access
@@ -18,10 +19,10 @@ exports.init = function(callback) {
 	}
 	pool = mysql.createPool({
 	  connectionLimit : 10,
-	  host: "localhost",
-	  user: "amg0",
-	  password: "xxx",
-	  database: "altuiboxdb",
+	  host: config.dbhost,
+	  user: config.dbuser,
+	  password: config.dbpwd,
+	  database: config.dbname,
 	  charset: 'utf8',
 	  dateStrings: true
 	});
