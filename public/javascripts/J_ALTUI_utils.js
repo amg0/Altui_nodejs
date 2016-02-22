@@ -79,10 +79,10 @@ var Localization = ( function (undefined) {
 	};
 	
 	var _dumpTerms = function() {
-		if (AltuiDebug.IsDebug()) {
-			console.log( JSON.stringify(_unknown_terms) );
-			console.log( JSON.stringify(_terms) );
-		}
+		// if (AltuiDebug.IsDebug()) {
+			// console.log( JSON.stringify(_unknown_terms) );
+			// console.log( JSON.stringify(_terms) );
+		// }
 		var text = "browser query:{3} userlanguage:{0} language:{1}\n Unknown terms:{2}".format(
 			window.navigator.userLanguage || "",
 			window.navigator.language || "",

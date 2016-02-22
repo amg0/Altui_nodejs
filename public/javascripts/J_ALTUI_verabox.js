@@ -377,16 +377,6 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	};
 	
 	function _getNewSceneID() {
-		// var id=1;
-		// while( _getSceneByID(id) != null )
-			// id++;
-		// return id;
-		
-		// var max = 0;
-		// $.each(_user_data.scenes, function( i,scene) {
-			// max = Math.max( scene.id, max );
-		// });
-		// return max+1;
 		return ALTUI_NEW_SCENE_ID;
 	};
 	
@@ -1590,7 +1580,12 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			return _asyncResponse(_user_data.devices, func , filterfunc, endfunc)
 		};
 		return null;
-	}
+	};
+	function _getWatches(whichwatches , filterfunc) {
+		if ((whichwatches!="VariablesToWatch") && (whichwatches!="VariablesToSend")) 
+			return null;
+		return [];
+	};
 	function _getScenes( func , filterfunc, endfunc ) {
 		if (_user_data.scenes!=null) {
 			return _asyncResponse(_user_data.scenes, func , filterfunc, endfunc)
@@ -1603,6 +1598,8 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		};
 		return null;
 	};
+	function _getRoomsSync() { return _user_data.rooms };
+	
 	function _getCategories( func, filterfunc, endfunc )
 	{
 		if (_user_data.categories!=null) {
@@ -1623,6 +1620,15 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		});
 		return val;
 	};
+	function _getStates( deviceid  )
+	{
+		for (var i=0; i<_user_data.devices.length; i++) {
+			var device = _user_data.devices[i];
+			if (device.id == deviceid)
+				return _user_data.devices[i].states;
+		}
+		return null;
+	};	
 	function _getDeviceBatteryLevel(device) {
 		var batteryLevel=_getStatus( device.id, "urn:micasaverde-com:serviceId:HaDevice1", "BatteryLevel" );
 		return batteryLevel; // Math.floor((Math.random() * 100) + 1);
@@ -1634,7 +1640,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 				return _user_data.devices[i];
 		}
 		return null;
-	};
+	};	
 	function _getBoxFullInfo() {
 		var ordered = {};
 		$.each( Object.keys(_user_data).sort(), function(i,key) {
@@ -1651,7 +1657,16 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		}
 		return null;
 	};
-
+	function _getSceneByID(sceneid) {
+		for (var i=0;i<_user_data.scenes.length;i++) {
+			if (_user_data.scenes[i].id == sceneid)
+				return _user_data.scenes[i];
+		}
+		return null;
+	};
+	function _getNewSceneID() {
+		return ALTUI_NEW_SCENE_ID;
+	};
 	function _getBoxInfo() {
 		return {
 			PK_AccessPoint: _user_data.PK_AccessPoint,
@@ -1742,6 +1757,11 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		}
 		return null;
 	};
+	function _isUserDataCached() {	
+		return MyLocalStorage.get("AltuiBox"+_uniqID)!=null; 
+	};
+
+
   // explicitly return public methods when this object is instantiated
   return {
 	//---------------------------------------------------------
@@ -1760,7 +1780,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getBoxFullInfo	: _getBoxFullInfo,		//()
 	getLuaStartup 	: _todo,
     getRooms		: _getRooms,	// in the future getRooms could cache the information and only call _getRooms when needed
-    getRoomsSync	: _todo,
+    getRoomsSync	: _getRoomsSync,
 	getRoomByID		:  _getRoomByID,
 	getDevices		:  _getDevices,
     getDevicesSync	: function() 	{ return _user_data.devices; },
@@ -1775,13 +1795,13 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getDeviceDependants: _todo,
 	addWatch			: _todo,
 	delWatch			: _todo,
-	getWatches			: _todo,
+	getWatches			: _getWatches,
 	isDeviceZwave	: _todo,
 	getScenes		: _getScenes,
 	getSceneHistory : _todo,
 	getScenesSync	: _todo,
-	getSceneByID 	: _todo,
-	getNewSceneID	: _todo,
+	getSceneByID 	: _getSceneByID,
+	getNewSceneID	: _getNewSceneID,
 	getPlugins		: _todo,
 	getPluginByID 	: _todo,
 	getUsers		: _getUsers,
@@ -1794,7 +1814,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	setStatus		: _todo,
 	getStatus		: _getStatus, //	( deviceid, service, variable )
 	getJobStatus	: _todo,
-	getStates		: _todo,
+	getStates		: _getStates,
 	evaluateConditions : _todo,
 	
 	createDevice	: _todo,
@@ -1840,7 +1860,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	saveEngine 		: _todo,
 	clearEngine		: _todo,
 	loadEngine 		: _todo,
-	isUserDataCached	: _todo,
+	isUserDataCached	: _isUserDataCached,
 	initEngine		: 	_initEngine
   };
 });	// not invoked, object does not exists

@@ -10440,6 +10440,8 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 	
 	genericTableDraw : function(type,htmlid,model) {				
 		model.data = cloneObject(model.data );
+		if (model.data.length==0)
+			return;
 		model.cols = model.cols || [];
 		var obj = model.data[0];
 		var viscols = MyLocalStorage.getSettings(type+"VisibleCols") || [];
