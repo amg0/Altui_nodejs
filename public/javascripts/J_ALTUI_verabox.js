@@ -1238,7 +1238,9 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 			cbfunc([]);
 		}
 	};
-	
+	function _runAction( deviceID, service, action, params, cbfunc ) {
+		return _upnpHelper.UPnPAction(	deviceID, service, action, params, cbfunc );	
+	};
 	function _xxxWatch( cmd, w ) {
 		// for thingspeak = a table of channelid, readkey, writekey, field, graphicurl
 		var url = "?id=lr_ALTUI_Handler&command={8}&service={0}&variable={1}&device={2}&scene={3}&expression={4}&xml={5}&provider={6}&providerparams={7}".format(
@@ -1436,9 +1438,10 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	getDeviceActions: _getDeviceActions,
 	getDeviceEvents : _getDeviceEvents,
 	getDeviceDependants : _getDeviceDependants,
-	addWatch			: _addWatch,				// ( lul_device, service, variable, deviceid, sceneid, expression, xml, provider, params)
-	delWatch			: _delWatch,				// ( lul_device, service, variable, deviceid, sceneid, expression, xml, provider, params)
-	getWatches			: _getWatches,				// (whichwatches,filterfunc)
+	runAction 		: _runAction,
+	addWatch		: _addWatch,				// ( lul_device, service, variable, deviceid, sceneid, expression, xml, provider, params)
+	delWatch		: _delWatch,				// ( lul_device, service, variable, deviceid, sceneid, expression, xml, provider, params)
+	getWatches		: _getWatches,				// (whichwatches,filterfunc)
 	isDeviceZwave	: _isDeviceZwave,	//(device)
 	getScenes		: _getScenes,
 	getSceneHistory : _getSceneHistory,
@@ -1650,6 +1653,9 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		}
 		return null;
 	};	
+	function _runAction( deviceID, service, action, params, cbfunc ) {
+		return _todo();	
+	};
 	function _getBoxFullInfo() {
 		var ordered = {};
 		$.each( Object.keys(_user_data).sort(), function(i,key) {
@@ -1796,6 +1802,23 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	function _getCategoryTitle(catnum)
 	{
 		return UserDataHelper.getCategoryTitle(_user_data,catnum);
+		// var jqxhr = $.ajax( {
+			// url: _altuibox_url+"/api/engine_data/category/"+catnum,
+			// type: "GET",
+			// cache: false,
+			// datatype: "json"
+		// })
+		// .done(function(data, textStatus, jqXHR) {
+			// if ($.isFunction(cbfunc))
+				// (cbfunc)(data.name);
+		// })
+		// .fail(function(jqXHR, textStatus, errorThrown) {
+			// if ($.isFunction(cbfunc))
+				// (cbfunc)(null);
+		// })
+		// .always(function() {
+		// });		
+		// return jqxhr;
 	};
   // explicitly return public methods when this object is instantiated
   return {
@@ -1828,6 +1851,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getDeviceActions: _todo,
 	getDeviceEvents : _todo,
 	getDeviceDependants: _getDeviceDependants,
+	runAction : _runAction,
 	addWatch			: _todo,
 	delWatch			: _todo,
 	getWatches			: _getWatches,

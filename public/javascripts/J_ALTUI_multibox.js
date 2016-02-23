@@ -442,7 +442,8 @@ var MultiBox = ( function( window, undefined ) {
 	};
 	function _runActionByAltuiID(altuiid, service, action, params,cbfunc) {
 		var elems = altuiid.split("-");
-		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPAction(elems[1], service, action, params,cbfunc);
+		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.runAction(elems[1], service, action, params,cbfunc);
+		// return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPAction(elems[1], service, action, params,cbfunc);
 	};
 	function _setAttr(device, attribute, value,cbfunc) {
 		var elems = device.altuiid.split("-");

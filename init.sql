@@ -60,9 +60,10 @@ CREATE TABLE states (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
 INSERT INTO states (id, deviceid, service, `variable`, `value` ) VALUES
-(1, 2, 'urn:upnp-org:serviceId:TemperatureSensor1' ,'CurrentTemperature', 15),
-(2, 3, 'urn:upnp-org:serviceId:SwitchPower1' ,'Target', 1),
-(3, 3, 'urn:upnp-org:serviceId:SwitchPower1' ,'Status', 1);
+(1, 1, 'urn:upnp-org:serviceId:altui1' ,'Debug', 0),
+(2, 2, 'urn:upnp-org:serviceId:TemperatureSensor1' ,'CurrentTemperature', 15),
+(3, 3, 'urn:upnp-org:serviceId:SwitchPower1' ,'Target', 1),
+(4, 3, 'urn:upnp-org:serviceId:SwitchPower1' ,'Status', 1);
 
 
 DROP TABLE  IF EXISTS scenes;

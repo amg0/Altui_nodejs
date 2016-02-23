@@ -21,81 +21,7 @@ var _user_data = {
   "scenes": [],
   "categories": [],
   "sections": [],
-  "category_filter": [
-	{
-		"id": 1,
-		"categories": [],
-		"Label": {
-			"lang_tag": "ui7_all",
-			"text": "All"
-		}
-	},
-	{
-		"id": 2,
-		"categories": [
-			"15"
-		],
-		"Label": {
-			"lang_tag": "ui7_av_devices",
-			"text": "Audio/Video"
-		}
-	},
-	{
-		"id": 3,
-		"categories": [
-			"2",
-			"3"
-		],
-		"Label": {
-			"lang_tag": "ui7_lights",
-			"text": "Lights"
-		}
-	},
-	{
-		"id": 4,
-		"categories": [
-			"6"
-		],
-		"Label": {
-			"lang_tag": "ui7_cameras",
-			"text": "Cameras"
-		}
-	},
-	{
-		"id": 5,
-		"categories": [
-			"7"
-		],
-		"Label": {
-			"lang_tag": "ui7_door_locks",
-			"text": "Door locks"
-		}
-	},
-	{
-		"id": 6,
-		"categories": [
-			"4",
-			"12",
-			"16",
-			"17",
-			"18"
-		],
-		"Label": {
-			"lang_tag": "ui7_sensors",
-			"text": "Sensors"
-		}
-	},
-	{
-		"id": 7,
-		"categories": [
-			"5"
-		],
-		"Label": {
-			"lang_tag": "ui7_thermostats",
-			"text": "Thermostats"
-		}
-	}
-  ],
+  "category_filter": [ ],
   "timezone": "0",
   "firmware_version": "1",
   "ExtraLuaFiles": [],
@@ -179,6 +105,12 @@ var _user_data = {
 };
 
 router
+	.get('/category/:id', function(req, res, next) {
+		var id = req.params.id;
+		dal.get('categories',id , function (err, results, fields) {
+			res.send(results);
+		});
+	})
 	.get('/', function(req, res, next) {
 		var filters = req.query.filters;
 		var columns = req.query.columns;
