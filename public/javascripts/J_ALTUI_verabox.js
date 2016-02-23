@@ -11,6 +11,26 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
 
 var ALTUI_NEW_SCENE_ID = -1;
+
+var UserDataHelper = (function() { 
+	return {
+		getCategoryTitle : function(_user_data,catnum) {
+			if (catnum==undefined)
+				return '';
+			
+			var found=undefined;
+			$.each(_user_data.category_filter, function(idx,catline) {
+				if ($.inArray(catnum.toString() , catline.categories) !=-1)
+				{
+					found = catline.Label.text;
+					return false; //break the loop
+				}
+			});
+			return (found !=undefined) ? found : '';
+		},
+	};
+})();
+
 var VeraBox = ( function( uniq_id, ip_addr ) {
 
   //---------------------------------------------------------
@@ -905,18 +925,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 
 	function _getCategoryTitle(catnum)
 	{
-		if (catnum==undefined)
-			return '';
-		
-		var found=undefined;
-		$.each(_user_data.category_filter, function(idx,catline) {
-			if ($.inArray(catnum.toString() , catline.categories) !=-1)
-			{
-				found = catline.Label.text;
-				return false; //break the loop
-			}
-		});
-		return (found !=undefined) ? found : '';
+		return UserDataHelper.getCategoryTitle(_user_data,catnum);
 	};
 	
 	function _updateSceneUserData(scene)
@@ -1667,6 +1676,9 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	function _getNewSceneID() {
 		return ALTUI_NEW_SCENE_ID;
 	};
+	function _getScenesSync() { 
+		return _user_data.scenes; 
+	};
 	function _getBoxInfo() {
 		return {
 			PK_AccessPoint: _user_data.PK_AccessPoint,
@@ -1760,8 +1772,31 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	function _isUserDataCached() {	
 		return MyLocalStorage.get("AltuiBox"+_uniqID)!=null; 
 	};
-
-
+	function _getDeviceDependants(device) {
+		var usedin_objects =[];
+		var scenes = this.getScenesSync();
+		$.each(scenes,function( idx,scene) {
+			if (scene.triggers)
+				$.each(scene.triggers, function(idx,trigger) {
+					if (trigger.device == device.id) {
+						usedin_objects.push({type:'trigger', scene:scene.altuiid, name:scene.name, trigger:trigger});
+					}
+				});
+			if (scene.groups)
+				$.each(scene.groups, function(idx,group) {
+					$.each(group.actions, function(idx,action) {
+						if (action.device==device.id) {
+							usedin_objects.push({type:'action', scene:scene.altuiid, name:scene.name, action:action});
+						}
+					});
+				});
+		});
+		return usedin_objects;
+	};
+	function _getCategoryTitle(catnum)
+	{
+		return UserDataHelper.getCategoryTitle(_user_data,catnum);
+	};
   // explicitly return public methods when this object is instantiated
   return {
 	//---------------------------------------------------------
@@ -1792,14 +1827,14 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getDeviceVariableHistory : _todo,
 	getDeviceActions: _todo,
 	getDeviceEvents : _todo,
-	getDeviceDependants: _todo,
+	getDeviceDependants: _getDeviceDependants,
 	addWatch			: _todo,
 	delWatch			: _todo,
 	getWatches			: _getWatches,
 	isDeviceZwave	: _todo,
 	getScenes		: _getScenes,
 	getSceneHistory : _todo,
-	getScenesSync	: _todo,
+	getScenesSync	: _getScenesSync,
 	getSceneByID 	: _getSceneByID,
 	getNewSceneID	: _getNewSceneID,
 	getPlugins		: _todo,
@@ -1832,7 +1867,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	reboot			: _todo,
 	setStartupCode	: _todo,
 	
-	getCategoryTitle : _todo,
+	getCategoryTitle : _getCategoryTitle,
 	getCategories	 : _getCategories,	//( cbfunc, filterfunc, endfunc ),
 	getDeviceTypes 	: _todo,
 

@@ -39,13 +39,14 @@ CREATE TABLE devices (
   id int unsigned NOT NULL AUTO_INCREMENT,
   name varchar(50) NOT NULL,
   device_type varchar(200) NOT NULL,
+  category_num int unsigned,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
-INSERT INTO devices (id, name, device_type) VALUES
-(1, 'ALTUI' ,'urn:schemas-upnp-org:device:altui:1'),
-(2, 'Temp toto' ,'urn:schemas-micasaverde-com:device:TemperatureSensor:1'),
-(3, 'Prise Sapin' ,'urn:schemas-upnp-org:device:BinaryLight:1');
+INSERT INTO devices (id, name, device_type, category_num) VALUES
+(1, 'ALTUI' ,'urn:schemas-upnp-org:device:altui:1',NULL),
+(2, 'Temp toto' ,'urn:schemas-micasaverde-com:device:TemperatureSensor:1',17),
+(3, 'Prise Sapin' ,'urn:schemas-upnp-org:device:BinaryLight:1',3);
 
 DROP TABLE  IF EXISTS states;
 
@@ -85,17 +86,27 @@ CREATE TABLE categories (
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
 INSERT INTO categories (id, name) VALUES
-(1,'Audio/Video'),
-(2,'Camera'),
-(3,'Dimmable Switch'),
-(4,'Humidity Sensor'),
-(5,'Light Sensor'),
-(6,'On/Off Switch'),
-(7,'Remote'),
-(8,'Scene Controller'),
-(9,'Sensor'),
-(10,'Temperature Sensor'),
-(11,'Window covering');
+(1,'Interface'),
+(2,'Dimmable Switch'),
+(3,'On/Off Switch'),
+(4,'Sensor'),
+(5,'HVAC'),
+(6,'Camera'),
+(7,'Door Lock'),
+(8,'Window covering'),
+(9,'Remote'),
+(10,'IR Transmitter'),
+(14,'Scene Controller'),
+(15,'Audio/Video'),
+(16,'Humidity Sensor'),
+(17,'Temperature Sensor'),
+(18,'Light Sensor'),
+(21,'Power Meter'),
+(22,'Alarm Panel'),
+(23,'Alarm Partition'),
+(24,'Siren'),
+(25,'Weather'),
+(26,'Philips Controller');
 
 
 
