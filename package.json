@@ -1,7 +1,7 @@
 {
   "name": "altuibox",
   "version": "0.0.1",
-  "description": "Experimental backend for ALTUI",
+  "description": "Experimental backend module for ALTUI Home Automation",
   "private": true,
   "scripts": {
     "start": "node ./bin/www"
@@ -10,7 +10,7 @@
     "body-parser": "~1.13.2",
     "cookie-parser": "~1.3.5",
     "debug": "~2.2.0",
-    "ejs": "^2.3.4",
+    "ejs": "~2.3.4",
     "express": "~4.13.1",
     "morgan": "~1.6.1",
     "mysql": "~2.10.0",
@@ -28,8 +28,9 @@
     "node",
     "mysql"
   ],
-  "author": "amg0",
-  "license": "ISC",
+  "author": "Alexis Mermet-Grandfille",
+  "license": "SEE LICENSE IN J_ALTUI_uimgr.js",
+  "homepage": "https://github.com/amg0/Altui.git",
   "bugs": {
     "url": "https://github.com/amg0/Altui/issues"
   }

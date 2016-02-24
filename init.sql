@@ -65,6 +65,19 @@ INSERT INTO states (id, deviceid, service, `variable`, `value` ) VALUES
 (3, 3, 'urn:upnp-org:serviceId:SwitchPower1' ,'Target', 1),
 (4, 3, 'urn:upnp-org:serviceId:SwitchPower1' ,'Status', 1);
 
+DROP TABLE  IF EXISTS actions;
+
+CREATE TABLE actions (
+  id int unsigned NOT NULL AUTO_INCREMENT,
+  deviceid int unsigned NOT NULL,
+  service varchar(200) NOT NULL,
+  action varchar(200) NOT NULL,
+  params varchar(200) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+
+INSERT INTO actions (id, deviceid, service, action, params ) VALUES
+(1, 1, 'urn:upnp-org:serviceId:altui1' ,'SetDebug', '{ newDebugMode:"" }' );
 
 DROP TABLE  IF EXISTS scenes;
 
