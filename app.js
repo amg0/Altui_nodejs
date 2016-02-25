@@ -1,5 +1,7 @@
 //# sourceURL=app.js
 // "use strict";
+var winston = require("winston");	// logging functionality
+winston.add(winston.transports.File, { filename: 'output.log' });
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -8,6 +10,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var routes = require('./routes/index');
 var dal = require("./dal");		// data model mysql access
+var engine = require("./engine");	// engine access , device & methods
 var api_variables = require('./routes/api_variables');
 var api_devices = require('./routes/api_devices');
 var api_rooms = require('./routes/api_rooms');
@@ -41,43 +44,47 @@ app.use('/views',express.static(path.join(__dirname, 'views')));
 
 // To serve Routes
 dal.init( function(err) {
-	app.use('/', routes);
-	app.use('/api/variables', api_variables);
-	app.use('/api/engine_data', api_engine);
-	app.use('/api/devices', api_devices);
-	app.use('/api/rooms', api_rooms);
-	app.use('/api/scenes', api_scenes);
-});
+	engine.initEngine( function(user_data) {
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
+		app.use('/', routes);
+		app.use('/api/variables', api_variables);
+		app.use('/api/engine_data', api_engine);
+		app.use('/api/devices', api_devices);
+		app.use('/api/rooms', api_rooms);
+		app.use('/api/scenes', api_scenes);
+		winston.info("Finished Initialize API routes");
+				
+		// catch 404 and forward to error handler
+		app.use(function(req, res, next) {
+		  var err = new Error('Not Found');
+		  err.status = 404;
+		  next(err);
+		});
 
-// error handlers
+		// error handlers
 
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-  });
-}
+		// development error handler
+		// will print stacktrace
+		if (app.get('env') === 'development') {
+		  app.use(function(err, req, res, next) {
+			res.status(err.status || 500);
+			res.render('error', {
+			  message: err.message,
+			  error: err
+			});
+		  });
+		}
 
-// production error handler
-// no stacktraces leaked to user
-app.use(function(err, req, res, next) {
-  res.status(err.status || 500);
-  res.render('error', {
-    message: err.message,
-    error: {}
-  });
+		// production error handler
+		// no stacktraces leaked to user
+		app.use(function(err, req, res, next) {
+		  res.status(err.status || 500);
+		  res.render('error', {
+			message: err.message,
+			error: {}
+		  });
+		});
+	});
 });
 
 

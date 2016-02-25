@@ -3,6 +3,7 @@
 var express = require('express');
 var winston = require("winston");	// logging functionality
 var dal = require("../dal");		// mysql access
+var engine = require("../engine");	// engine access , device & methods
 var router = express.Router();
 
 /*
@@ -43,6 +44,10 @@ router
 		dal.update('devices',req.params.id, obj , function (err, results, fields) {
 			res.send(results);
 		});
+	})
+	.put('/:id/:service/:action', function(req, res, next) {
+		var params = JSON.parse(req.body.params);
+		engine.runAction(req.params.id,req.params.service,req.params.action,params);
 	})
 	.delete('/:id', function(req, res, next) {
 		dal.delete('devices',req.params.id,function (err, results, fields) {

@@ -33,6 +33,20 @@ INSERT INTO rooms (id, name) VALUES
 (2, 'Cuisine');
 
 
+DROP TABLE  IF EXISTS devicetypes;
+
+CREATE TABLE devicetypes (
+  id int unsigned NOT NULL AUTO_INCREMENT,
+  device_type varchar(200) NOT NULL,
+  nodemodule varchar(50) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
+
+INSERT INTO devicetypes (id, device_type, nodemodule) VALUES
+(1, 'urn:schemas-upnp-org:device:altui:1','altui'),
+(2, 'urn:schemas-micasaverde-com:device:TemperatureSensor:1',''),
+(3, 'urn:schemas-upnp-org:device:BinaryLight:1','');
+
 DROP TABLE  IF EXISTS devices;
 
 CREATE TABLE devices (

@@ -3,12 +3,11 @@
 
 var config = require('./config');
 var winston = require("winston");	// logging functionality
-winston.add(winston.transports.File, { filename: 'output.log' });
 var mysql = require("mysql");		// mysql access
 var genericdal = require("./genericdal");
 var pool  = null;
 
-var tables = ['variables','devices','rooms','scenes','categories','states'];
+var tables = ['devicetypes','variables','devices','rooms','scenes','categories','states'];
 var dals = {};
 
 exports.init = function(callback) {
