@@ -3,6 +3,8 @@
 
 var winston = require("winston");	// logging functionality
 var mysql = require("mysql");		// mysql access
+var clone = require('clone');
+var config = require("./config");	// configuration
 var dal = require("./dal");		// mysql access
 var device_objects={};
 
@@ -98,44 +100,45 @@ var user_data = {
 var createDevice = function(id,module) {
 	winston.info("createDevice:",id,module);
 	device_objects[id] = require("./devices/"+module)(id);
-	device_objects[id].SetDebug({test:1});
 };
 
 var debugDump = function() {
 	winston.info("device_objects initialized:"+JSON.stringify(device_objects));
 };
 
-exports.user_data = user_data;
-
-exports.runAction = function(id,service,action,params) {
-	winston.info("runAction:",id,service,action,params);
-};
-
-exports.initEngine = function( callback ) {	// (callback)(user_data)
-	winston.info("Engine: initEngine()");
+var refreshEngine = function(bRefreshOnly,callback ) {
 	dal.listAll('devices', null, null , null, function (params, err, devices, fields) {
-		user_data.devices = devices;
+		if (err) winston.error(err);
+		user_data.devices = clone(devices);
 		dal.listAll('rooms', null, null , null, function (params,err, rooms, fields) {
-			user_data.rooms = rooms;
+			if (err) winston.error(err);
+			user_data.rooms = clone(rooms);
 			dal.listAll('scenes', null, null , null, function (params,err, scenes, fields) {
-				user_data.scenes = scenes;
+				if (err) winston.error(err);
+				user_data.scenes = clone(scenes);
 				dal.listAll('categories', null, null , null, function (params,err, categories, fields) {
-					user_data.categories = categories;
-					var _todo = devices.length;
+					if (err) winston.error(err);
+					user_data.categories = clone(categories);
+					var _todo = user_data.devices.length;
 					if (_todo==0)
 						res.send(user_data);
-					for( var i=0 ; i<devices.length; i++ ) {
+					for( var i=0 ; i<user_data.devices.length; i++ ) {
 						var idx = i;
-						dal.listAll('devicetypes', idx, null, [ "device_type='"+devices[idx].device_type+"'"], function (params, err, devicetypes, fields) {
+						dal.listAll('devicetypes', idx, null, [ "device_type='"+user_data.devices[idx].device_type+"'"], function (idx, err, devicetypes, fields) {
+							if (err) winston.error(err);
+							winston.info("devicetypes[0]", devicetypes[0]);
+							winston.info("bRefreshOnly", bRefreshOnly);
 							if (devicetypes[0].nodemodule!='') {
-								createDevice( devices[params].id , devicetypes[0].nodemodule )
+								if (bRefreshOnly!=true) 
+									createDevice( user_data.devices[idx].id , devicetypes[0].nodemodule )
 							}
-							dal.listAll('states', idx, null , [ "deviceid="+devices[idx].id ], function (params, err, states, fields) {
-								user_data.devices[params].states = states;
+							dal.listAll('states', idx, null , [ "deviceid="+user_data.devices[idx].id ], function (idx, err, states, fields) {
+								if (err) winston.error(err);
+								user_data.devices[idx].states = clone(states);
 								_todo--;
 								if (_todo==0) {
 									debugDump();
-									(callback)(user_data);
+									(callback)(err,user_data);
 								}
 							});
 						});
@@ -143,6 +146,67 @@ exports.initEngine = function( callback ) {	// (callback)(user_data)
 				});
 			});
 		});
+	});	
+};
+exports.user_data = user_data;
+
+exports.setVariable = function (deviceid, service, variable , value, cbfunc) {
+	winston.info("engine setVariable() device:#%d service:%s variable:%s value:%s",deviceid,service,variable,JSON.stringify(value));
+	dal.listAll('states', null, null , [ "deviceid="+deviceid , "service='"+service+"'", "variable='"+variable+"'"], function (params, err, states, fields) {
+		if (states[0].id) {
+			dal.update('states',states[0].id, {value:value} , function (error, results, fields) {
+				var results = results;
+				if (error) {
+					winston.error(error);
+					(cbfunc)(error,"fail");
+				} else {
+					refreshEngine(true , function(error,user_data) {
+						(cbfunc)(err,results);
+					});
+				}
+			});
+		}
+		else {
+			dal.add('states',states[0].id, {deviceid:deviceid, service:service, variable:variable, value:value} , function (error, results, fields) {
+				var results = results;
+				if (error) {
+					winston.error(error);
+					(cbfunc)(error,"fail");
+				} else {
+					refreshEngine(true , function(error,user_data) {
+						(cbfunc)(err,results);
+					});
+				}
+			});
+		}
 	});
+};
+
+exports.runAction = function(id,service,action,params,cbfunc) {
+	winston.info("runAction() device:#%d service:%s action:%s params:%s:",id,service,action,JSON.stringify(params));
+	
+	if (device_objects[id] && device_objects[id][service] && device_objects[id][service][action] )
+		// call device action
+		(device_objects[id][service][action])(params,function(error, results) {
+			var results = results;
+			if (error) {
+				winston.error(error);
+				(cbfunc)(error,"fail");
+			}
+			else {
+				// then refresh internal engine data
+				refreshEngine(true , function(error,user_data) {
+					(cbfunc)(error,results);
+				});
+			}
+		});
+	else {
+		(cbfunc)(new Error("wrong device service or action"),"fail");
+	}
+};
+
+exports.initEngine = function( callback ) {	// (callback)(user_data)
+	winston.info("Engine: initEngine()");
+	refreshEngine(false, callback);			// create devices as it is an INIT
 };
 

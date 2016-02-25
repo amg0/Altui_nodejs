@@ -45,9 +45,11 @@ router
 			res.send(results);
 		});
 	})
-	.put('/:id/:service/:action', function(req, res, next) {
+	.put('/:id/action/:service/:action', function(req, res, next) {
 		var params = JSON.parse(req.body.params);
-		engine.runAction(req.params.id,req.params.service,req.params.action,params);
+		engine.runAction(req.params.id,req.params.service,req.params.action,params, function( error,result ) {
+			res.send( JSON.stringify({ error:error, result:result}) );
+		});
 	})
 	.delete('/:id', function(req, res, next) {
 		dal.delete('devices',req.params.id,function (err, results, fields) {

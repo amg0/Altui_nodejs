@@ -21,6 +21,7 @@ router
 	.get('/category/:id', function(req, res, next) {
 		var id = req.params.id;
 		dal.get('categories',id , function (err, results, fields) {
+			if (err) winston.error(err);
 			res.send(results);
 		});
 	})

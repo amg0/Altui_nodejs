@@ -1654,7 +1654,25 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		return null;
 	};	
 	function _runAction( deviceID, service, action, params, cbfunc ) {
-		return _todo();	
+		var jqxhr = $.ajax( {
+			url: _altuibox_url+"/api/devices/{0}/action/{1}/{2}".format(deviceID,service,action),
+			type: "PUT",
+			cache: false,
+			data: {
+				params:JSON.stringify(params)
+			},
+		})
+		.done(function(data, textStatus, jqXHR) {
+			if ($.isFunction(cbfunc))
+				(cbfunc)(data);
+		})
+		.fail(function(jqXHR, textStatus, errorThrown) {
+			if ($.isFunction(cbfunc))
+				(cbfunc)(null);
+		})
+		.always(function() {
+		});		
+		return jqxhr;
 	};
 	function _getBoxFullInfo() {
 		var ordered = {};
