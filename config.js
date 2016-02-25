@@ -11,4 +11,5 @@ module.exports = {
 	jspath			: "javascripts/",
 	controllerType	: "AltuiBox",
 	// mainUser		: "amg0"
+	EngineRefreshTimer_ms : 5000
 }

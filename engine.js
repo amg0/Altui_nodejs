@@ -2,11 +2,15 @@
 // "use strict";
 
 var winston = require("winston");	// logging functionality
+var async = require('async');
 var mysql = require("mysql");		// mysql access
 var clone = require('clone');
 var config = require("./config");	// configuration
+var myutils = require("./myutils");	// utils
 var dal = require("./dal");		// mysql access
 var device_objects={};
+
+var user_data_timer = null;
 
 var user_data = {
   "devices": [],
@@ -106,47 +110,115 @@ var debugDump = function() {
 	winston.info("device_objects initialized:"+JSON.stringify(device_objects));
 };
 
-var refreshEngine = function(bRefreshOnly,callback ) {
-	dal.listAll('devices', null, null , null, function (params, err, devices, fields) {
-		if (err) winston.error(err);
-		user_data.devices = clone(devices);
-		dal.listAll('rooms', null, null , null, function (params,err, rooms, fields) {
-			if (err) winston.error(err);
-			user_data.rooms = clone(rooms);
-			dal.listAll('scenes', null, null , null, function (params,err, scenes, fields) {
-				if (err) winston.error(err);
-				user_data.scenes = clone(scenes);
-				dal.listAll('categories', null, null , null, function (params,err, categories, fields) {
-					if (err) winston.error(err);
-					user_data.categories = clone(categories);
-					var _todo = user_data.devices.length;
-					if (_todo==0)
-						res.send(user_data);
-					for( var i=0 ; i<user_data.devices.length; i++ ) {
-						var idx = i;
-						dal.listAll('devicetypes', idx, null, [ "device_type='"+user_data.devices[idx].device_type+"'"], function (idx, err, devicetypes, fields) {
-							if (err) winston.error(err);
-							winston.info("devicetypes[0]", devicetypes[0]);
-							winston.info("bRefreshOnly", bRefreshOnly);
-							if (devicetypes[0].nodemodule!='') {
-								if (bRefreshOnly!=true) 
-									createDevice( user_data.devices[idx].id , devicetypes[0].nodemodule )
-							}
-							dal.listAll('states', idx, null , [ "deviceid="+user_data.devices[idx].id ], function (idx, err, states, fields) {
-								if (err) winston.error(err);
-								user_data.devices[idx].states = clone(states);
-								_todo--;
-								if (_todo==0) {
-									debugDump();
-									(callback)(err,user_data);
-								}
-							});
-						});
-					}
-				});
+var refreshEngine = function(callback ) {
+	async.parallel([
+		// load devices
+		function(callback) {
+			dal.listAll('devices', null, null , null, function (params, err, devices, fields) {
+				if (err) return callback(err);
+				user_data.devices = clone(devices);
+				callback();
 			});
-		});
-	});	
+		},
+		// load rooms
+		function(callback) {
+			dal.listAll('rooms', null, null , null, function (params,err, rooms, fields) {
+				if (err) return callback(err);
+				user_data.rooms = clone(rooms);
+				callback();
+			});			
+		},
+		// load scenes
+		function(callback) {
+			dal.listAll('scenes', null, null , null, function (params,err, scenes, fields) {
+				if (err) return callback(err);
+				user_data.scenes = clone(scenes);
+				callback();
+			});			
+		},
+		// load categories
+		function(callback) {
+			dal.listAll('categories', null, null , null, function (params,err, categories, fields) {
+				if (err) return callback(err);
+				user_data.categories = clone(categories);
+				callback();
+			});			
+		},
+		// load devicetypes
+		function(callback) {
+			dal.listAll('devicetypes', null, null , null, function (params,err, devicetypes, fields) {
+				if (err) return callback(err);
+				_temp_devicetypes = clone(devicetypes);
+				callback();
+			});			
+		},
+	], function(err) { //This function gets called after the n tasks have called their "task callbacks"
+		if (err) winston.error(err);
+		async.each(user_data.devices, 
+			function(device,callback) {
+				for (var idt=0; idt<_temp_devicetypes.length; idt++ ) {
+					if ( (device.device_type == _temp_devicetypes[idt].device_type) && 
+						 (_temp_devicetypes[idt].nodemodule!='') &&
+						 (device_objects[ device.id ] == undefined) ) 
+					{
+							createDevice( device.id , _temp_devicetypes [idt].nodemodule )	
+					}
+				}
+				dal.listAll('states', null, null , [ "deviceid="+device.id ], function (params, err, states, fields) {
+					if (err) return callback(err);
+					device.states = clone(states);
+					callback();
+				});			
+			},
+			function(err) {
+				if (err) winston.error(err);
+				debugDump();
+				if (myutils.isFunction(callback))
+					(callback)(err,user_data);			
+			}
+		);
+    });
+	
+	// dal.listAll('devices', null, null , null, function (params, err, devices, fields) {
+		// if (err) winston.error(err);
+		// user_data.devices = clone(devices);
+		// dal.listAll('rooms', null, null , null, function (params,err, rooms, fields) {
+			// if (err) winston.error(err);
+			// user_data.rooms = clone(rooms);
+			// dal.listAll('scenes', null, null , null, function (params,err, scenes, fields) {
+				// if (err) winston.error(err);
+				// user_data.scenes = clone(scenes);
+				// dal.listAll('categories', null, null , null, function (params,err, categories, fields) {
+					// if (err) winston.error(err);
+					// user_data.categories = clone(categories);
+					// var _todo = user_data.devices.length;
+					// if (_todo==0)
+						// res.send(user_data);
+					// for( var i=0 ; i<user_data.devices.length; i++ ) {
+						// var idx = i;
+						// dal.listAll('devicetypes', idx, null, [ "device_type='"+user_data.devices[idx].device_type+"'"], function (idx, err, devicetypes, fields) {
+							// if (err) winston.error(err);
+							// winston.info("devicetypes[0]", devicetypes[0]);
+							// if (devicetypes[0].nodemodule!='') {
+								// if (device_objects[ user_data.devices[idx].id ]==undefined) 
+									// createDevice( user_data.devices[idx].id , devicetypes[0].nodemodule )
+							// }
+							// dal.listAll('states', idx, null , [ "deviceid="+user_data.devices[idx].id ], function (idx, err, states, fields) {
+								// if (err) winston.error(err);
+								// user_data.devices[idx].states = clone(states);
+								// _todo--;
+								// if (_todo==0) {
+									// debugDump();
+									// if (myutils.isFunction(callback))
+										// (callback)(err,user_data);
+								// }
+							// });
+						// });
+					// }
+				// });
+			// });
+		// });
+	// });	
 };
 exports.user_data = user_data;
 
@@ -160,7 +232,7 @@ exports.setVariable = function (deviceid, service, variable , value, cbfunc) {
 					winston.error(error);
 					(cbfunc)(error,"fail");
 				} else {
-					refreshEngine(true , function(error,user_data) {
+					refreshEngine(function(error,user_data) {
 						(cbfunc)(err,results);
 					});
 				}
@@ -173,7 +245,7 @@ exports.setVariable = function (deviceid, service, variable , value, cbfunc) {
 					winston.error(error);
 					(cbfunc)(error,"fail");
 				} else {
-					refreshEngine(true , function(error,user_data) {
+					refreshEngine(function(error,user_data) {
 						(cbfunc)(err,results);
 					});
 				}
@@ -195,7 +267,7 @@ exports.runAction = function(id,service,action,params,cbfunc) {
 			}
 			else {
 				// then refresh internal engine data
-				refreshEngine(true , function(error,user_data) {
+				refreshEngine(function(error,user_data) {
 					(cbfunc)(error,results);
 				});
 			}
@@ -207,6 +279,9 @@ exports.runAction = function(id,service,action,params,cbfunc) {
 
 exports.initEngine = function( callback ) {	// (callback)(user_data)
 	winston.info("Engine: initEngine()");
-	refreshEngine(false, callback);			// create devices as it is an INIT
+	if (user_data_timer) {
+		clearInterval(user_data_timer);
+	}
+	user_data_timer = setInterval(refreshEngine,config.EngineRefreshTimer_ms );
+	refreshEngine(callback);			// create devices as it is an INIT
 };
-

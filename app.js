@@ -46,7 +46,7 @@ app.use('/views',express.static(path.join(__dirname, 'views')));
 dal.init( function(err) {
 	engine.initEngine( function(user_data) {
 		
-		winston.info(JSON.stringify(user_data));
+		// winston.info(JSON.stringify(user_data));
 
 		app.use('/', routes);
 		app.use('/api/variables', api_variables);

@@ -33,7 +33,7 @@ module.exports = function(tablename) {
 			  if (results.length==0) {
 				  var err = new Error("No record found");
 				  winston.log('warn',err);
-				  (callback)(err, {}, fields);
+				  (callback)(error, {}, fields);
 			  }
 			  else
 				  (callback)(error, results[0], fields);
@@ -62,7 +62,7 @@ module.exports = function(tablename) {
 				if (results.changedRows==0) {
 					var err = new Error("No record found or modified");
 					winston.log('warn',err);
-					(callback)(err, results, fields);
+					(callback)(error, results, fields);
 				}
 				else
 					(callback)(error,results, fields);
@@ -80,7 +80,7 @@ module.exports = function(tablename) {
 				if (results.affectedRows==0) {
 					var err = new Error("No record deleted");
 					winston.log('warn',err);	
-					(callback)(err,results, fields);					
+					(callback)(error,results, fields);					
 				}
 				else
 					(callback)(error,results, fields);
