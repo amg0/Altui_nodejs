@@ -14,7 +14,7 @@ module.exports = function(deviceid) {
 				winston.info('Device(#%d) Action:SetDebug',_id,JSON.stringify(params));	
 				
 				// set the new debug mode
-				engine.setVariable(_id, 'urn:upnp-org:serviceId:altui1', 'Debug', params.newDebugMode,function(error, result) {
+				engine.setState(_id, 'urn:upnp-org:serviceId:altui1', 'Debug', params.newDebugMode,function(error, result) {
 					cbfunc( error, "SetDebug = "+result );		// success
 				});
 			}

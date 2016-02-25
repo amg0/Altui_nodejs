@@ -222,8 +222,8 @@ var refreshEngine = function(callback ) {
 };
 exports.user_data = user_data;
 
-exports.setVariable = function (deviceid, service, variable , value, cbfunc) {
-	winston.info("engine setVariable() device:#%d service:%s variable:%s value:%s",deviceid,service,variable,JSON.stringify(value));
+exports.setState = function (deviceid, service, variable , value, cbfunc) {
+	winston.info("engine setState() device:#%d service:%s variable:%s value:%s",deviceid,service,variable,JSON.stringify(value));
 	dal.listAll('states', null, null , [ "deviceid="+deviceid , "service='"+service+"'", "variable='"+variable+"'"], function (params, err, states, fields) {
 		if (states[0].id) {
 			dal.update('states',states[0].id, {value:value} , function (error, results, fields) {
@@ -246,7 +246,7 @@ exports.setVariable = function (deviceid, service, variable , value, cbfunc) {
 					(cbfunc)(error,"fail");
 				} else {
 					refreshEngine(function(error,user_data) {
-						(cbfunc)(err,results);
+						(cbfunc)(error,results);
 					});
 				}
 			});
