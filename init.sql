@@ -54,13 +54,14 @@ CREATE TABLE devices (
   name varchar(50) NOT NULL,
   device_type varchar(200) NOT NULL,
   category_num int unsigned,
+  room int unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
-INSERT INTO devices (id, name, device_type, category_num) VALUES
-(1, 'ALTUI' ,'urn:schemas-upnp-org:device:altui:1',NULL),
-(2, 'Temp toto' ,'urn:schemas-micasaverde-com:device:TemperatureSensor:1',17),
-(3, 'Prise Sapin' ,'urn:schemas-upnp-org:device:BinaryLight:1',3);
+INSERT INTO devices (id, name, device_type, category_num, room) VALUES
+(1, 'ALTUI' ,'urn:schemas-upnp-org:device:altui:1',NULL,0),
+(2, 'Temp toto' ,'urn:schemas-micasaverde-com:device:TemperatureSensor:1',17,1),
+(3, 'Prise Sapin' ,'urn:schemas-upnp-org:device:BinaryLight:1',3,2);
 
 DROP TABLE  IF EXISTS states;
 
