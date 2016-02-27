@@ -103,11 +103,12 @@ var user_data = {
 
 var createDevice = function(id,module) {
 	winston.info("createDevice:",id,module);
-	device_objects[id] = require("./devices/"+module)(id);
+	var func = require("./devices/"+module);
+	device_objects[id] = new (func)(id);
 };
 
 var debugDump = function() {
-	winston.info("device_objects initialized:"+JSON.stringify(device_objects));
+	// winston.info("device_objects initialized:"+JSON.stringify(device_objects));
 };
 
 var refreshEngine = function(callback ) {
@@ -178,52 +179,11 @@ var refreshEngine = function(callback ) {
 			}
 		);
     });
-	
-	// dal.listAll('devices', null, null , null, function (params, err, devices, fields) {
-		// if (err) winston.error(err);
-		// user_data.devices = clone(devices);
-		// dal.listAll('rooms', null, null , null, function (params,err, rooms, fields) {
-			// if (err) winston.error(err);
-			// user_data.rooms = clone(rooms);
-			// dal.listAll('scenes', null, null , null, function (params,err, scenes, fields) {
-				// if (err) winston.error(err);
-				// user_data.scenes = clone(scenes);
-				// dal.listAll('categories', null, null , null, function (params,err, categories, fields) {
-					// if (err) winston.error(err);
-					// user_data.categories = clone(categories);
-					// var _todo = user_data.devices.length;
-					// if (_todo==0)
-						// res.send(user_data);
-					// for( var i=0 ; i<user_data.devices.length; i++ ) {
-						// var idx = i;
-						// dal.listAll('devicetypes', idx, null, [ "device_type='"+user_data.devices[idx].device_type+"'"], function (idx, err, devicetypes, fields) {
-							// if (err) winston.error(err);
-							// winston.info("devicetypes[0]", devicetypes[0]);
-							// if (devicetypes[0].nodemodule!='') {
-								// if (device_objects[ user_data.devices[idx].id ]==undefined) 
-									// createDevice( user_data.devices[idx].id , devicetypes[0].nodemodule )
-							// }
-							// dal.listAll('states', idx, null , [ "deviceid="+user_data.devices[idx].id ], function (idx, err, states, fields) {
-								// if (err) winston.error(err);
-								// user_data.devices[idx].states = clone(states);
-								// _todo--;
-								// if (_todo==0) {
-									// debugDump();
-									// if (myutils.isFunction(callback))
-										// (callback)(err,user_data);
-								// }
-							// });
-						// });
-					// }
-				// });
-			// });
-		// });
-	// });	
 };
 exports.user_data = user_data;
 
 exports.setState = function (deviceid, service, variable , value, cbfunc) {
-	winston.info("engine setState() device:#%d service:%s variable:%s value:%s",deviceid,service,variable,JSON.stringify(value));
+	winston.info("Engine.setState() device:#%d service:%s variable:%s value:%s",deviceid,service,variable,JSON.stringify(value));
 	dal.listAll('states', null, null , [ "deviceid="+deviceid , "service='"+service+"'", "variable='"+variable+"'"], function (params, err, states, fields) {
 		if (states[0].id) {
 			dal.update('states',states[0].id, {value:value} , function (error, results, fields) {
@@ -255,28 +215,22 @@ exports.setState = function (deviceid, service, variable , value, cbfunc) {
 };
 
 exports.runAction = function(id,service,action,params,cbfunc) {
-	winston.info("runAction() device:#%d service:%s action:%s params:%s:",id,service,action,JSON.stringify(params));
-	
-	if (device_objects[id] && device_objects[id][service] && device_objects[id][service][action] )
-		// call device action
-		(device_objects[id][service][action])(params,function(error, results) {
+	winston.info("Engine.runAction() device:#%d service:%s action:%s params:%s:",id,service,action,JSON.stringify(params));
+	device_objects[id].CallAction( service,action,params, function(error, results) {
+		if (error) {
+			winston.error(error);
+			(cbfunc)(error,"fail");
+		}
+		else {
+			// then refresh internal engine data
 			var results = results;
-			if (error) {
-				winston.error(error);
-				(cbfunc)(error,"fail");
-			}
-			else {
-				// then refresh internal engine data
-				refreshEngine(function(error,user_data) {
-					(cbfunc)(error,results);
-				});
-			}
-		});
-	else {
-		(cbfunc)(new Error("wrong device service or action"),"fail");
-	}
+			refreshEngine(function(error,user_data) {
+				(cbfunc)(error,results);
+			});
+		}
+	});
 };
-
+		
 exports.initEngine = function( callback ) {	// (callback)(user_data)
 	winston.info("Engine: initEngine()");
 	if (user_data_timer) {
