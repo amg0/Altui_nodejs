@@ -8,24 +8,28 @@ var engine = require("../engine");	// engine access , device & methods
 var util = require('util');
 var CoreDevice = require('./core');		// root for all devices
 
+var myserviceMap = {
+	['urn:upnp-org:serviceId:altui1'] : {
+		SetDebug: function(params,cbfunc) {
+			winston.info('Device(#%d) Action:SetDebug',this._id,JSON.stringify(params));	
+			// set the new debug mode
+			engine.setState(this._id, 'urn:upnp-org:serviceId:altui1', 'Debug', params.newDebugMode,function(error, result) {
+				if (myutils.isFunction(cbfunc))
+					cbfunc( error, "SetDebug = "+result );		// success
+			});
+			return 0;
+		}
+	}
+};
+
 function AltuiDevice(deviceid) {
 	CoreDevice.apply(this, arguments);	// call the base class
 	// AltuiDevice.super_.apply(this, arguments);		// call the base class
 	winston.info('Startup ALTUI Device (#%d) ',deviceid);
 	this.test = 'toto';
-	this.serviceMap = {
-		['urn:upnp-org:serviceId:altui1'] : {
-			SetDebug: function(params,cbfunc) {
-				winston.info('Device(#%d) Action:SetDebug',this._id,JSON.stringify(params));	
-				// set the new debug mode
-				engine.setState(this._id, 'urn:upnp-org:serviceId:altui1', 'Debug', params.newDebugMode,function(error, result) {
-					if (myutils.isFunction(cbfunc))
-						cbfunc( error, "SetDebug = "+result );		// success
-				});
-				return 0;
-			}
-		}
-	};
+	for ( var p in myserviceMap ) {
+		this.serviceMap[p] = myserviceMap[p];
+	}
 };
 
 util.inherits(AltuiDevice, CoreDevice);	// inherits methods from base class

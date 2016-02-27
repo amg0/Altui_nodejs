@@ -6,8 +6,9 @@ var config = require("../config");	// configuration
 var engine = require("../engine");	// engine access , device & methods
 
 function CoreDevice(deviceid) {
-	this._id = deviceid;
 	winston.info('Startup Device (#%d) ', this._id);
+	this._id = deviceid;
+	this.serviceMap = {};
 }
 
 CoreDevice.prototype = {
