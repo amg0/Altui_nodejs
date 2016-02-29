@@ -7,9 +7,9 @@ var mysql = require("mysql");		// mysql access
 var clone = require('clone');
 var config = require("./config");	// configuration
 var myutils = require("./myutils");	// utils
-var dal = require("./dal");		// mysql access
+var dal = require("./dal");			// mysql access
 var device_objects={};
-
+var device_types={};
 var user_data_timer = null;
 
 var user_data = {
@@ -109,6 +109,7 @@ var createDevice = function(id,module) {
 
 var debugDump = function() {
 	// winston.info("device_objects initialized:"+JSON.stringify(device_objects));
+	winston.info("user_data initialized:"+JSON.stringify(user_data));
 };
 
 var refreshEngine = function(callback ) {
@@ -149,7 +150,9 @@ var refreshEngine = function(callback ) {
 		function(callback) {
 			dal.listAll('devicetypes', null, null , null, function (params,err, devicetypes, fields) {
 				if (err) return callback(err);
-				_temp_devicetypes = clone(devicetypes);
+				for (var i=0; i<devicetypes.length; i++ ) {
+					device_types[ devicetypes[i].device_type ] = devicetypes[i];
+				}
 				callback();
 			});			
 		},
@@ -157,14 +160,16 @@ var refreshEngine = function(callback ) {
 		if (err) winston.error(err);
 		async.each(user_data.devices, 
 			function(device,callback) {
-				for (var idt=0; idt<_temp_devicetypes.length; idt++ ) {
-					if ( (device.device_type == _temp_devicetypes[idt].device_type) && 
-						 (_temp_devicetypes[idt].nodemodule!='') &&
-						 (device_objects[ device.id ] == undefined) ) 
-					{
-							createDevice( device.id , _temp_devicetypes [idt].nodemodule )	
-					}
-				}
+				var devtype = device_types[ device.device_type ];
+
+				// Create the nodejs device object
+				if ( (devtype.nodemodule!='') && (device_objects[device.id]==undefined) ) 
+					createDevice( device.id , devtype.nodemodule )	
+
+				// init device type parameters of the device
+				device.device_file = devtype.device_file;
+				device.device_json = devtype.device_json;
+				
 				dal.listAll('states', null, null , [ "deviceid="+device.id ], function (params, err, states, fields) {
 					if (err) return callback(err);
 					device.states = clone(states);

@@ -39,13 +39,15 @@ CREATE TABLE devicetypes (
   id int unsigned NOT NULL AUTO_INCREMENT,
   device_type varchar(200) NOT NULL,
   nodemodule varchar(50) NOT NULL,
+  device_file varchar(50) NOT NULL,
+  device_json varchar(50) NOT NULL,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 AUTO_INCREMENT=5 ;
 
-INSERT INTO devicetypes (id, device_type, nodemodule) VALUES
-(1, 'urn:schemas-upnp-org:device:altui:1','altui'),
-(2, 'urn:schemas-micasaverde-com:device:TemperatureSensor:1',''),
-(3, 'urn:schemas-upnp-org:device:BinaryLight:1','');
+INSERT INTO devicetypes (id, device_type, nodemodule, device_file, device_json) VALUES
+(1, 'urn:schemas-upnp-org:device:altui:1','altui','D_ALTUI.xml','D_ALTUI_UI7.json'),
+(2, 'urn:schemas-micasaverde-com:device:TemperatureSensor:1','','',''),
+(3, 'urn:schemas-upnp-org:device:BinaryLight:1','','','');
 
 DROP TABLE  IF EXISTS devices;
 
