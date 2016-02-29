@@ -170,6 +170,10 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		});
 	};
 	
+	function _getFileContent( filename , cbfunc) {
+		return _upnpHelper.UPnPGetFile( filename, cbfunc);
+	};
+	
 	// process the async response function
 	function _asyncResponse( arr, func , filterfunc, endfunc ) {
 		if (arr!=null) {
@@ -1418,6 +1422,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	getIpAddr		: _getIpAddr,
 	getUrlHead		: _getUrlHead,
 	getDataProviders    : _getDataProviders,	// (cbfunc)
+	getFileContent :  _getFileContent,			//( filename , cbfunc)
 	triggerAltUIUpgrade : _triggerAltUIUpgrade,	// (suffix,newrev)  : newrev number in TRAC
 	getIconPath		: _getIconPath,		// ( src )
 	getIcon			: _getIcon, 		// workaround to get image from vera box
@@ -1550,6 +1555,18 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			_asyncResponse(_user_data.devices);
 			_asyncResponse(_user_data.scenes);
 			_asyncResponse(_user_data.rooms);
+
+			// update upnp information
+			$.each(_user_data.devices || [], function(idx,device) {
+				var dt = device.device_type;
+				if (dt!=undefined)
+					MultiBox.updateDeviceTypeUPnpDB( _uniqID, dt, device.device_file);	// pass device file so UPNP data can be read
+				if (device!=null) {	
+					device.dirty=true; 
+					EventBus.publishEvent("on_ui_deviceStatusChanged",device);
+				}
+			});	
+			
 			_dataEngine = setTimeout( _refreshEngine, 3000 );
 			if (bFirst)
 				EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
@@ -1642,36 +1659,6 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 				return _user_data.devices[i].states;
 		}
 		return null;
-	};
-	// dynamic
-	// undefined or -1 : ALTUI mode , triggers a UPNP http save
-	// 0 : means not dynamic, will require a save
-	// 1 : means dynamic, lost at the next restart if not save
-	function _setStatus( deviceid, service, variable, value, dynamic ) {
-		var jqxhr = $.ajax( {
-			url: _altuibox_url+"/api/devices/{0}/status/{1}/{2}".format(deviceid,service,variable),
-			type: "PUT",
-			cache: false,
-			data: {
-				value:JSON.stringify(value)
-			},
-		})
-		.done(function(data, textStatus, jqXHR) {
-			if (data.error==null) {
-				var states = _getStates(deviceid);
-				$.each(states, function(idx,state) {
-					if ((state.service==service) && (state.variable==variable))
-						state.value = value;
-				})
-			}
-			else
-				PageMessage.message(_T("Could not save Variable {0}").format(variable), "warning");
-		})
-		.fail(function(jqXHR, textStatus, errorThrown) {
-		})
-		.always(function() {
-		});		
-		return jqxhr;
 	};	
 	function _getDeviceBatteryLevel(device) {
 		var batteryLevel=_getStatus( device.id, "urn:micasaverde-com:serviceId:HaDevice1", "BatteryLevel" );
@@ -1870,11 +1857,31 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		// });		
 		// return jqxhr;
 	};
+	function _getFileContent( filename , cbfunc) {
+		// http://192.168.1.114:3000/files/D_ALTUI.xml
+		var jqxhr = $.ajax( {
+			url: _altuibox_url+"/files/"+filename,
+			type: "GET",
+			cache: false
+		})
+		.done(function(data, textStatus, jqXHR) {
+			if ($.isFunction(cbfunc))
+				(cbfunc)(data);
+		})
+		.fail(function(jqXHR, textStatus, errorThrown) {
+			if ($.isFunction(cbfunc))
+				(cbfunc)(null);
+		})
+		.always(function() {
+		});		
+		return jqxhr;
+	};
   // explicitly return public methods when this object is instantiated
   return {
 	//---------------------------------------------------------
 	// PUBLIC  functions
 	//---------------------------------------------------------
+	getFileContent :  _getFileContent,
 	getUPnPHelper	: _todo,
 	getIpAddr		: _todo,
 	getUrlHead		: _todo,
@@ -1920,7 +1927,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	setHouseMode	: _setHouseMode,
 	getHouseModeSwitchDelay : _getHouseModeSwitchDelay,
 	setAttr			: _todo,
-	setStatus		: _setStatus,
+	setStatus		: _todo,
 	getStatus		: _getStatus, //	( deviceid, service, variable )
 	getJobStatus	: _todo,
 	getStates		: _getStates,

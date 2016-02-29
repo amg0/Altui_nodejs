@@ -152,8 +152,7 @@ var MultiBox = ( function( window, undefined ) {
 			$.each(extraController.split(','), function(idx,ctrlinfo) {
 				ctrlinfo = ctrlinfo.trim();
 				var splits = ctrlinfo.split("-");
-				if (splits[1] != 'A')
-					_controllers.push({ ip:splits[0], controller:null, type:splits[1] || 'V' });
+				_controllers.push({ ip:splits[0], controller:null, type:splits[1] || 'V' });
 			});
 		
 		// initialize controllers that are not yet initialized
@@ -629,7 +628,7 @@ var MultiBox = ( function( window, undefined ) {
 	};
 	function _getFileContent(controllerid, filename , cbfunc) {
 		var id = controllerid || 0;
-		return _controllers[id].controller.getUPnPHelper().UPnPGetFile( filename, cbfunc);
+		return _controllers[id].controller.getFileContent( filename, cbfunc);
 	};
 	function _osCommand(controllerid, cmd,cbfunc) {
 		var id = controllerid || 0;
