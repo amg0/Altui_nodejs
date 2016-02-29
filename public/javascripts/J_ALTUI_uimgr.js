@@ -37,7 +37,7 @@ THE SOFTWARE.
 // Transparent : //drive.google.com/uc?id=0B6TVdm2A9rnNMkx5M0FsLWk2djg&authuser=0&export=download
 
 // UIManager.loadScript('https://www.google.com/jsapi?autoload={"modules":[{"name":"visualization","version":"1","packages":["corechart","table","gauge"]}]}');
-var AltUI_revision = "$Revision: 1198 $";
+var AltUI_revision = "$Revision: 1213 $";
 var NULL_DEVICE = "0-0";
 var NULL_SCENE = "0-0";
 var _HouseModes = [];
@@ -1337,7 +1337,10 @@ var DialogManager = ( function() {
 	function _getDialogActionValue(id)
 	{
 		var val = $("#"+id).val().split('.');
-		return {
+		return (val.length<2) ? {
+			service: "0",
+			action: "0"
+		} : {
 			service: val[0],
 			action: val[1]
 		};
@@ -3316,10 +3319,29 @@ var UIManager  = ( function( window, undefined ) {
 					var device = MultiBox.getDeviceByAltuiID(widget.properties.deviceid);
 					if (device==null)
 						return "";
-					return (widget.properties.deviceid==NULL_DEVICE) ? ("<p>"+picGlyph+"</p>") : _deviceIconHtml( device );
+					var onclickstr = "";
+					if (bEdit!=true) {
+						if (widget.properties.sceneid != NULL_SCENE) {
+							onclickstr = 'MultiBox.runSceneByAltuiID("{0}")'.format(widget.properties.sceneid);
+						}
+						else if (widget.properties.action && widget.properties.service) {
+							onclickstr = 'MultiBox.runActionByAltuiID("{0}", "{1}", "{2}", {3} )'.format(
+								device ? device.altuiid : NULL_DEVICE,
+								widget.properties.service,
+								widget.properties.action,
+								JSON.stringify(widget.properties.params));
+						}
+					}
+					return (widget.properties.deviceid==NULL_DEVICE) 
+						? ("<p>"+picGlyph+"</p>") 
+						: _deviceIconHtml( device ,0 , (bEdit==true) ? '' : onclickstr);
 				},
 				properties: {
-					deviceid:NULL_DEVICE
+					deviceid:NULL_DEVICE,
+					sceneid:NULL_SCENE,	// optional scene  to run when clicked
+					service:'',			// optional UPNP action to run when clicked
+					action:'',
+					params:{},
 				} 
 			},
 			{ 	id:50, 
@@ -3396,7 +3418,9 @@ var UIManager  = ( function( window, undefined ) {
 						htmlLabels.append( $("<small class='pull-left'></small>").text(widget.properties.labels[1]));
 					htmlLabels = htmlLabels.wrap( "<div></div>" ).parent().html();
 					
-					return "<button  type='button' style='color:{4};' class='{1} btn btn-default' aria-label='Run Scene' onclick='{3}' >{2}</button>".format(
+					var html = "";
+					if (widget.properties.displayicon==0) {
+						html = "<button  type='button' style='color:{4};' class='{1} btn btn-default' aria-label='Run Scene' onclick='{3}' >{2}</button>".format(
 						widget.properties.deviceid,					// id
 						'altui-widget-2statebtn',					// class
 						onoffGlyph,									// content
@@ -3406,9 +3430,18 @@ var UIManager  = ( function( window, undefined ) {
 						// JSON.stringify(widget.properties.params),	// action parameter
 						(status==0) ? 'red' : 'green'				// status & color of button
 						)+htmlLabels;
+					}
+					else {
+						html = "<div class='{0}'>{1}</div>".format(
+							'altui-widget-2statebtn',
+							_deviceIconHtml( device, 0 , (bEdit==true)? '' : 'UIManager.onoffOnClick( {0})'.format(widget.id))
+							)+htmlLabels;
+					}
+					return html;
 				},
 				properties: {	//( deviceID, service, action, params, cbfunc )
 					deviceid:NULL_DEVICE,
+					displayicon:0,
 					service:'',		// display state service
 					variable:'',	// display state variable
 					onvalue:'',
@@ -3484,8 +3517,10 @@ var UIManager  = ( function( window, undefined ) {
 				html: _toolHtml(scaleGlyph,_T("Gauge")),
 				property: _onPropertyGauge, 
 				onWidgetResize: _onResizeGauge,
-				widgetdisplay: function(widget,bEdit)	{ 
-					return "<div class='altui-gauge-div' id='altui-gauge-{0}' ></div>".format( widget.id );
+				widgetdisplay: function(widget,bEdit,page)	{ 
+					if (page==undefined)
+						page = PageManager.getPageFromName( _getActivePageName() );
+					return "<div class='altui-gauge-div' id='altui-gauge-{0}-{1}' ></div>".format( page.id, widget.id );
 				},
 				onWidgetDisplay: _onDisplayGauge,
 				properties: {	//( deviceID, service, action, params, cbfunc )
@@ -4324,7 +4359,7 @@ var UIManager  = ( function( window, undefined ) {
 		return icon;
 	};
 
-	function _deviceIconHtml( device, zindex )	// deviceid if device is null
+	function _deviceIconHtml( device, zindex, onclick )	// deviceid if device is null
 	{
 		var controller = MultiBox.controllerOf(device.altuiid).controller;
 		//
@@ -4354,7 +4389,13 @@ var UIManager  = ( function( window, undefined ) {
 		}
 		else
 			iconDataSrc = iconPath;
-		return "<img class='altui-device-icon pull-left img-rounded' data-org-src='"+iconPath+"' src='"+iconDataSrc+"' alt='_todo_' onerror='UIManager.onDeviceIconError(\""+device.altuiid+"\")' ></img>";
+		return "<img class='altui-device-icon pull-left img-rounded' data-org-src='{0}' src='{1}' {3} alt='_todo_' onerror='UIManager.onDeviceIconError(\"{2}\")' ></img>".format(
+			iconPath,
+			iconDataSrc,
+			device.altuiid,
+			(isNullOrEmpty(onclick)) ? "" : "onclick='{0}'".format(onclick)
+		);
+		// return "<img class='altui-device-icon pull-left img-rounded' data-org-src='"+iconPath+"' src='"+iconDataSrc+"' alt='_todo_' onerror='UIManager.onDeviceIconError(\""+device.altuiid+"\")' ></img>";
 	}
 	
 	function _deviceDraw(device) {
@@ -5857,7 +5898,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				var widget = PageManager.getWidgetByID( page, widgetid );
 				var tool = _getToolByClass( widget.cls );
 				if (tool.no_refresh !=true) {
-					var html = _getWidgetHtml( widget, false );	// not edit mode
+					var html = _getWidgetHtml( widget, false, page );	// not edit mode
 					$(elem).replaceWith( html );
 				} else {
 					// even for no refresh we may be forced to refresh due to a trigger
@@ -5865,7 +5906,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 						var trig = MultiBox.getDeviceByAltuiID(widget.properties.triggerdeviceid );
 						var stat = MultiBox.getStatus(trig, widget.properties.triggerservice, widget.properties.triggervariable )
 						if ((stat!=null) && (stat!=widget.properties.triggerlastvalue)) {
-							var html = _getWidgetHtml( widget, false );	// not edit mode
+							var html = _getWidgetHtml( widget, false, page );	// not edit mode
 							$(elem).replaceWith( html );
 						}
 					}
@@ -6232,6 +6273,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		var dialog = DialogManager.createPropertyDialog('OnOff Button Properties');
 		
 		DialogManager.dlgAddDevices( dialog , '', widget.properties.deviceid, function() {
+			DialogManager.dlgAddCheck(dialog,'DisplayIcon',widget.properties.displayicon,_T("Display with device Icon"));
 			DialogManager.dlgAddVariables(dialog, null, widget, function() {
 				DialogManager.dlgAddLine(dialog,'ValueON', _T('Value ON'),widget.properties.onvalue,"",{placeholder:"Leave empty for 1 or true"},"col-xs-6");
 				DialogManager.dlgAddLine(dialog,'ValueOFF', _T('Value OFF'),widget.properties.offvalue,"",{placeholder:"Leave empty for 0 or false or null"},"col-xs-6");
@@ -6256,7 +6298,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				return;	// mandatory data
 			real_widget.properties.deviceid = widget.properties.deviceid;
 			real_widget.properties.inverted = $("#altui-widget-Inverted").is(':checked');
-
+			real_widget.properties.displayicon = $("#altui-widget-DisplayIcon").is(':checked');
 			var selected = MultiBox.getStateByID( real_widget.properties.deviceid,$("#altui-select-variable").val() );
 			real_widget.properties.variable = selected.variable;
 			real_widget.properties.service = selected.service;
@@ -6318,8 +6360,12 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		var dialog = DialogManager.createPropertyDialog('Device Icon Properties');
 		
 		DialogManager.dlgAddDevices( dialog , '', widget.properties.deviceid, function() {
-			// run the show
-			$('div#dialogModal').modal();
+			DialogManager.dlgAddScenes( dialog , widget, function() {
+				DialogManager.dlgAddActions("altui-widget-action",dialog, widget, widget.properties, _T('Or Action to Run'), function() {
+					// run the show
+					$('div#dialogModal').modal();
+				});
+			});
 		});
 		
 		// buttons
@@ -6328,6 +6374,20 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			.on( 'submit',"div#dialogModal form", function() {
 			// save for real this time
 			real_widget.properties.deviceid = $("#altui-select-device").val();
+			real_widget.properties.sceneid = $('#altui-widget-sceneid').val();
+			if (real_widget.properties.sceneid==0)
+				real_widget.properties.sceneid = NULL_SCENE;
+			real_widget.properties.service = widget.properties.service;
+			real_widget.properties.action = widget.properties.action;
+			// read params
+			real_widget.properties.params={};
+			$("div.altui-widget-action-parameters input").each( function(idx,elem)
+			{
+				var value = $(elem).val();
+				var name = $(elem).prop('id').substring( "altui-widget-action-parameters-".length );
+				real_widget.properties.params[name]=value;
+			});
+			$('div#dialogModal').modal('hide');
 			$('div#dialogModal button.btn-primary').off('click');
 			$('div#dialogModal').modal('hide');
 			_showSavePageNeeded(true);
@@ -6503,7 +6563,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				redTo: 		widget.properties.max
 			});
 
-		var chart = new google.visualization.Gauge(document.getElementById("altui-gauge-"+widgetid));
+		var chart = new google.visualization.Gauge(document.getElementById("altui-gauge-{0}-{1}".format(page.id,widgetid)));
 		chart.draw(data, options);
 	};
 		
@@ -6649,7 +6709,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		return "<ul class='nav nav-tabs' id='altui-page-tabs' role='tablist'>"+lines.join('')+actions+"</ul>";
 	};
 
-	function _getWidgetHtml( widget , bEditMode )
+	function _getWidgetHtml( widget , bEditMode, page )
 	{
 		var html="";
 		if (widget!=null)
@@ -6660,7 +6720,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				? 'style="width:{0}px; height:{1}px; z-index:{2};"'.format(widget.size.width, widget.size.height,widget.zindex) 
 				: 'style="z-index:{0};"'.format(widget.zindex);
 			html += ("<div class='altui-widget {0} ' id='{1}' data-type='{0}' {2}>").format(widget.cls,widget.id,style);
-			html += (tool.widgetdisplay)(widget,bEditMode);
+			html += (tool.widgetdisplay)(widget,bEditMode,page );
 			html +="</div>";
 
 			var temp = $(html)
@@ -6679,7 +6739,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		var pageHtml = "<div class='altui-custompage-canvas' style='z-index:0;'>";
 		if (page.children)
 			$.each(page.children, function(idx,child) {							
-				pageHtml += _getWidgetHtml( child, bEditMode );
+				pageHtml += _getWidgetHtml( child, bEditMode , page );
 			});
 		pageHtml += "</div>";
 		var str = "<div role='tabpanel' class='tab-pane altui-page-content-one' id='altui-page-content-{0}' >{1}</div>".format(page.name.replace(' ','_'),pageHtml); // no white space in IDs
@@ -6694,7 +6754,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			$.each(tools, function(idx,tool) {
 				if ($.isFunction( tool.onWidgetDisplay) )
 				{
-					var selector = "#altui-page-content-{0} .{1}".format(page.name,tool.cls);
+					var selector = "#altui-page-content-{0} .{1}".format(page.name.replace(' ','_'),tool.cls);
 					$(selector).each( function(idx,elem) {
 						var widgetid = $(elem).prop('id');
 						(tool.onWidgetDisplay)(page,widgetid, bEdit);		// edit mode							
@@ -8258,7 +8318,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 						_showSavePageNeeded(true);
 
 						var widget=PageManager.getWidgetByID( page, widgetid );
-						var html = _getWidgetHtml( widget , true);		// edit mode
+						var html = _getWidgetHtml( widget , true, page );		// edit mode
 						var obj = $(html)
 							.appendTo(parent)
 							.draggable( _widgetOnCanvasDraggableOptions(page) );

@@ -326,7 +326,9 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	};
 	
 	function _getIconPath(name) {
-		return "//{0}/cmh/skins/default/img/devices/device_states/{1}".format( (_uniqID==0)  ? window.location.hostname : _upnpHelper.getIpAddr(), name);
+		if (_uniqID==0)
+			return "/cmh/skins/default/img/devices/device_states/{0}".format( name);
+		return "//{0}/cmh/skins/default/img/devices/device_states/{1}".format( _upnpHelper.getIpAddr(), name);	
 	};
 	
 	function _getIcon( imgpath , cbfunc ) {
@@ -1640,6 +1642,36 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 				return _user_data.devices[i].states;
 		}
 		return null;
+	};
+	// dynamic
+	// undefined or -1 : ALTUI mode , triggers a UPNP http save
+	// 0 : means not dynamic, will require a save
+	// 1 : means dynamic, lost at the next restart if not save
+	function _setStatus( deviceid, service, variable, value, dynamic ) {
+		var jqxhr = $.ajax( {
+			url: _altuibox_url+"/api/devices/{0}/status/{1}/{2}".format(deviceid,service,variable),
+			type: "PUT",
+			cache: false,
+			data: {
+				value:JSON.stringify(value)
+			},
+		})
+		.done(function(data, textStatus, jqXHR) {
+			if (data.error==null) {
+				var states = _getStates(deviceid);
+				$.each(states, function(idx,state) {
+					if ((state.service==service) && (state.variable==variable))
+						state.value = value;
+				})
+			}
+			else
+				PageMessage.message(_T("Could not save Variable {0}").format(variable), "warning");
+		})
+		.fail(function(jqXHR, textStatus, errorThrown) {
+		})
+		.always(function() {
+		});		
+		return jqxhr;
 	};	
 	function _getDeviceBatteryLevel(device) {
 		var batteryLevel=_getStatus( device.id, "urn:micasaverde-com:serviceId:HaDevice1", "BatteryLevel" );
@@ -1888,7 +1920,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	setHouseMode	: _setHouseMode,
 	getHouseModeSwitchDelay : _getHouseModeSwitchDelay,
 	setAttr			: _todo,
-	setStatus		: _todo,
+	setStatus		: _setStatus,
 	getStatus		: _getStatus, //	( deviceid, service, variable )
 	getJobStatus	: _todo,
 	getStates		: _getStates,

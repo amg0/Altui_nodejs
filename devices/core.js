@@ -6,14 +6,14 @@ var config = require("../config");	// configuration
 var engine = require("../engine");	// engine access , device & methods
 
 function CoreDevice(deviceid) {
-	winston.info('Startup Device (#%d) ', this._id);
-	this._id = deviceid;
 	this.serviceMap = {};
+	this._id = deviceid;
+	winston.info('Startup Device:#%d', this._id);
 }
 
 CoreDevice.prototype = {
 	ID : function() {
-		winston.info('Device(#%d) Action:ID()',this._id,JSON.stringify(arguments));	
+		winston.info('Device:#%d Action:ID()',this._id,JSON.stringify(arguments));	
 		return this._id;
 	}
 }

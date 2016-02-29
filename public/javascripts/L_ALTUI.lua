@@ -10,7 +10,7 @@ local MSG_CLASS = "ALTUI"
 local ALTUI_SERVICE = "urn:upnp-org:serviceId:altui1"
 local devicetype = "urn:schemas-upnp-org:device:altui:1"
 local DEBUG_MODE = false
-local version = "v1.13"
+local version = "v1.14"
 local UI7_JSON_FILE= "D_ALTUI_UI7.json"
 local json = require("dkjson")
 if (type(json) == "string") then
@@ -1548,6 +1548,10 @@ local function sendValuetoUrlStorage(url,watch_description,lul_device, lul_servi
 		params[#params+1] = (k .. "=" .. modurl.escape(v or ''))
 		i=i+1
 	end
+	
+	-- adding device name
+	local devicename = luup.attr_get ('name', lul_device)
+	params[#params+1] = ("name" .. "=" .. modurl.escape(devicename or ''))
 	-- if finish by ? or by & just add to it
 	-- if does not contain ?, then add ? then params
 	-- if does contain ? , then add & then params

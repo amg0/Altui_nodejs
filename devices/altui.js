@@ -11,7 +11,7 @@ var CoreDevice = require('./core');		// root for all devices
 var myserviceMap = {
 	['urn:upnp-org:serviceId:altui1'] : {
 		SetDebug: function(params,cbfunc) {
-			winston.info('Device(#%d) Action:SetDebug',this._id,JSON.stringify(params));	
+			winston.info('Device:#%d Action:SetDebug',this._id,JSON.stringify(params));	
 			// set the new debug mode
 			engine.setState(this._id, 'urn:upnp-org:serviceId:altui1', 'Debug', params.newDebugMode,function(error, result) {
 				if (myutils.isFunction(cbfunc))
@@ -25,7 +25,7 @@ var myserviceMap = {
 function AltuiDevice(deviceid) {
 	CoreDevice.apply(this, arguments);	// call the base class
 	// AltuiDevice.super_.apply(this, arguments);		// call the base class
-	winston.info('Startup ALTUI Device (#%d) ',deviceid);
+	winston.info('Startup ALTUI Device:#%d ',deviceid);
 	this.test = 'toto';
 	for ( var p in myserviceMap ) {
 		this.serviceMap[p] = myserviceMap[p];

@@ -51,6 +51,12 @@ router
 			res.send( JSON.stringify({ error:error, result:result}) );
 		});
 	})
+	.put('/:id/status/:service/:variable', function(req, res, next) {
+		var value = JSON.parse(req.body.value);
+		engine.setState(req.params.id,req.params.service,req.params.variable, value, function( error,result ){
+			res.send( JSON.stringify({ error:error, result:result}) );
+		});
+	})
 	.delete('/:id', function(req, res, next) {
 		dal.delete('devices',req.params.id,function (err, results, fields) {
 			res.send(results);

@@ -102,7 +102,7 @@ var user_data = {
 };
 
 var createDevice = function(id,module) {
-	winston.info("createDevice:",id,module);
+	winston.info("createDevice:#%d",id,module);
 	var func = require("./devices/"+module);
 	device_objects[id] = new (func)(id);
 };
