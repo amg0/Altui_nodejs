@@ -176,6 +176,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	
 	// process the async response function
 	function _asyncResponse( arr, func , filterfunc, endfunc ) {
+		arr = arr || [];
 		if (arr!=null) {
 			if ($.isFunction(filterfunc))
 				arr = $.grep( arr, filterfunc );
@@ -262,7 +263,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	function _getScenes( func , filterfunc, endfunc ) {
 		if (_scenes != null )
 			_asyncResponse( _scenes.sort(altuiSortByName), func , filterfunc, endfunc);
-		return _scenes;
+		return _asyncResponse( [], func , filterfunc, endfunc);;
 	};
 	
 	function _getUsers(func , filterfunc, endfunc ) {
@@ -305,7 +306,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	function _getDevices( func , filterfunc, endfunc ) {
 		if (_devices !=null)
 			_asyncResponse( _devices.sort(altuiSortByName), func, filterfunc, endfunc )
-		return _devices;
+		return _asyncResponse( [], func, filterfunc, endfunc );
 	};
 	function _getCategories( cbfunc, filterfunc, endfunc )
 	{
@@ -320,6 +321,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 					}
 				} else {
 					_categories = null;
+					_asyncResponse( [], cbfunc, filterfunc, endfunc );
 					// PageMessage.message( _T("Controller {0} is busy, be patient.").format(_upnpHelper.getIpAddr()) , "warning");
 				}
 			});
@@ -1555,12 +1557,21 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			_asyncResponse(_user_data.devices);
 			_asyncResponse(_user_data.scenes);
 			_asyncResponse(_user_data.rooms);
-
+			_user_data.static_data=[];
 			// update upnp information
 			$.each(_user_data.devices || [], function(idx,device) {
+				var json = device.device_json;
 				var dt = device.device_type;
-				if (dt!=undefined)
-					MultiBox.updateDeviceTypeUPnpDB( _uniqID, dt, device.device_file);	// pass device file so UPNP data can be read
+				if (dt && json)
+					FileDB.getFileContent(_uniqID, json , function( jsonstr ) {
+						if (jsonstr) {
+							// if file found and content != null
+							_user_data.static_data.push(jsonstr);
+							MultiBox.updateDeviceTypeUIDB( _uniqID, dt, jsonstr);				
+							if (dt!=undefined)
+								MultiBox.updateDeviceTypeUPnpDB( _uniqID, dt, device.device_file);	// pass device file so UPNP data can be read
+						}
+					});
 				if (device!=null) {	
 					device.dirty=true; 
 					EventBus.publishEvent("on_ui_deviceStatusChanged",device);
@@ -1612,7 +1623,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		if (_user_data.devices!=null) {
 			return _asyncResponse(_user_data.devices, func , filterfunc, endfunc)
 		};
-		return null;
+		return _asyncResponse([], func , filterfunc, endfunc);
 	};
 	function _getWatches(whichwatches , filterfunc) {
 		if ((whichwatches!="VariablesToWatch") && (whichwatches!="VariablesToSend")) 
@@ -1623,13 +1634,13 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		if (_user_data.scenes!=null) {
 			return _asyncResponse(_user_data.scenes, func , filterfunc, endfunc)
 		};
-		return null;
+		return _asyncResponse([], func , filterfunc, endfunc);
 	};
 	function _getRooms( func , filterfunc, endfunc ) {
 		if (_user_data.rooms!=null) {
 			return _asyncResponse(_user_data.rooms, func , filterfunc, endfunc)
 		};
-		return null;
+		return _asyncResponse([], func , filterfunc, endfunc);
 	};
 	function _getRoomsSync() { return _user_data.rooms };
 	
@@ -1638,7 +1649,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		if (_user_data.categories!=null) {
 			return _asyncResponse(_user_data.categories, func , filterfunc, endfunc)
 		};
-		return null;
+		return _asyncResponse([], func , filterfunc, endfunc);
 	};
 	function _getStatus( deviceid, service, variable ) {
 		var val = null;
@@ -1871,6 +1882,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 				(cbfunc)(data);
 		})
 		.fail(function(jqXHR, textStatus, errorThrown) {
+			AltuiDebug.debug( "http Get for file {0} failed".format( filename ));
 			if ($.isFunction(cbfunc))
 				(cbfunc)(null);
 		})
@@ -1900,7 +1912,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
     getRoomsSync	: _getRoomsSync,
 	getRoomByID		:  _getRoomByID,
 	getDevices		:  _getDevices,
-    getDevicesSync	: function() 	{ return _user_data.devices; },
+    getDevicesSync	: function() 	{ return _user_data.devices || []; },
 	getDeviceByType : _todo,
 	getDeviceByAltID : _todo,
 	getDeviceByID 	: _getDeviceByID,	// devid

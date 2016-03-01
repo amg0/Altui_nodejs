@@ -10,7 +10,7 @@ local MSG_CLASS = "ALTUI"
 local ALTUI_SERVICE = "urn:upnp-org:serviceId:altui1"
 local devicetype = "urn:schemas-upnp-org:device:altui:1"
 local DEBUG_MODE = false
-local version = "v1.14"
+local version = "v1.15"
 local UI7_JSON_FILE= "D_ALTUI_UI7.json"
 local json = require("dkjson")
 if (type(json) == "string") then
@@ -2252,46 +2252,45 @@ function registerHandlers()
 		end
 		table.insert (printResult, table.concat (arg, " \t"))
 	end
-	local function pretty (Lua, cfg)    -- 2015.11.29   @akbooer
-	  cfg = type (cfg) == "table" and cfg or {}
-	  local tab = (' '):rep (cfg.tab or 2)   -- for line indent
-	  local enc = {}   -- set of tables currently being encoded (to avoid infinite self-reference loop)
-	  local con = table.concat
-	  local function ctrl(y) return ("\\%03d"): format (y:byte ()) end     -- deal with escapes, etc.
-	  local function str_obj(x) return con {'"', x:gsub ("[\001-\031]", ctrl), '"'} end
-	  local function brk_idx(x) return con {'[', x, ']'} end
-	  local function str_idx(x) return x:match "^[%a_][%w_]*$" and x or brk_idx(str_obj (x)) end
-	  local function fmt (options, x) return (options [type(x)] or tostring) (x) end 
+	
+	local function pretty (Lua)    -- 2014 - 2015.03.01   @akbooer
+	  local con, tab, enc = table.concat, '  ', {[_G] = "_G"}                -- don't expand global environment
+	  local function ctrl(y) return ("\\%03d"): format (y:byte ()) end       -- deal with escapes, etc.
+	  local function str_obj(x) return '"' .. x:gsub ("[\001-\031]", ctrl) .. '"' end
+	  local function brk_idx(x) return '[' .. tostring(x) .. ']' end
+	  local function str_idx(x) return x:match "^[%a_][%w_]*$" or brk_idx(str_obj (x)) end
+	  local function nl (d,x) if x then return '\n'..tab:rep (d),'\n'..tab:rep (d-1) else return '','' end end
 	  local function val (x, depth, name) 
-		local function tbl_obj (x)
-		  local idx, its, y = {}, {}, {(x[1] or x[2]) and true}
-		  if enc[x] then return enc[x] end
-		  enc[x] = name  -- start encoding this table
-		  for i in pairs(x) do idx[#idx+1] = i; y[i] = true 
-			if (type(i) == "number") and x[i+2] then y[i+1] = true end
-		  end
-		  table.sort (idx, function (a,b) return tostring(a) < tostring (b) end)
-		  for i in ipairs (y) do 
-			its[i] = val (x[i], depth+1, con {name,'[',i,']'}); y[i]=nil end -- contiguous numeric indices
-		  if #its > 0 then its = {con (its, ',')} end
-		  local n = 0
-		  for _,j in ipairs (idx) do    -- discontiguous numeric or any string indices
-			if y[j] then n = n + 1
-			  local fmt_idx = fmt ({number = brk_idx, string = str_idx}, (j))
-			  its[#its+1] = fmt_idx .." = ".. val (x[j], depth+1, name..'.'..fmt_idx) 
-			end
-		  end
-		  local crlf, spc1, spc2 = '','',''
-		  if n > 1 then 
-			crlf = '\n'.. tab:rep(depth); spc1 = crlf; spc2 = crlf: sub (1,-1 - #tab) end -- indents 
-		  enc [x] = nil  -- finish encoding this table
-		  return con {'{', spc1, con {con (its, ','..crlf) }, spc2, '}'}
+		if enc
+		then return enc
+		end                                    -- previously encoded
+
+		local t = type(x)
+		if t ~= "table" then return (({string = str_obj})[t] or tostring) (x) end
+		enc = name                                                       -- start encoding this table
+
+		local idx, its, y = {}, {}, {rawget (x,1) or rawget (x,2) and true}
+		for i in pairs(x) do                                                -- fix isolated nil numeric indices
+		  y = true; if (type(i) == "number") and rawget(x,i+2) then y[i+1] = true end
 		end
-		return fmt ({table = tbl_obj, string = str_obj}, x)      
-	  end 
-	  for a,b in pairs (_G) do if type (b) == "table" then enc[b] = a end; end
-	  return val(Lua, 1, cfg.name or '_') 
+		for i in ipairs(y) do                                               -- contiguous numeric indices
+		  y = nil; its = val (x, depth+1, con {name,'[',i,']'}) 
+		end
+		if #its > 0 then its = {con (its, ',')} end                         -- collapse to single line
+		for i in pairs(y) do idx[#idx+1] = (rawget(x,i) ~= nil) and i end   -- sort remaining non-nil indices
+		table.sort (idx, function (a,b) return tostring(a) < tostring (b) end)
+		for _,j in ipairs (idx) do                                          -- remaining indices
+		  local fmt_idx = (({string = str_idx})[type(j)] or brk_idx) (j)
+		  its[#its+1] = fmt_idx .." = ".. val (x[j], depth+1, name..'.'..fmt_idx) 
+		end
+		enc = nil                                                        -- finish encoding this table
+
+		local nl1, nl2 = nl(depth, #idx > 1)                                -- indent multiline tables 
+		return con {'{', nl1, con {con (its, ','..nl1) }, nl2, '}'}         -- put it all together
+	  end
+	  return val(Lua, 1, '_') 
 	end 
+
 	function ALTUI_LuaRunHandler(lul_request, lul_parameters, lul_outputformat)
 		local lua = lul_parameters["lua"]
 		luup.log(string.format("ALTUI: runLua(%s)",lua),50)

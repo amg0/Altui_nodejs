@@ -103,6 +103,9 @@ var MultiBox = ( function( window, undefined ) {
 			return null;
 		var elems = device.altuiid.split("-");
 		var json = device.device_json || 'nil'; // fallback as on UI5 device_json is not defined
+		if (_devicetypesDB[elems[0]][device.device_type] == undefined)
+			return null;
+		
 		if ( (_devicetypesDB[elems[0]][device.device_type][json]==undefined) ) {
 			// try with nil and use this if ok
 			if (_devicetypesDB[elems[0]][device.device_type]['nil']!=undefined) {
@@ -160,7 +163,7 @@ var MultiBox = ( function( window, undefined ) {
 					type:splits[1] || 'V', 
 					controller:null
 				}
-				switch (newcontroller .type) {
+				switch (newcontroller.type) {
 					case 'A':
 						newcontroller.controller = new AltuiBox(1+idx,newcontroller.ip);
 						break;

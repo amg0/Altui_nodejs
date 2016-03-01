@@ -46,8 +46,8 @@ CREATE TABLE devicetypes (
 
 INSERT INTO devicetypes (id, device_type, nodemodule, device_file, device_json) VALUES
 (1, 'urn:schemas-upnp-org:device:altui:1','altui','D_ALTUI.xml','D_ALTUI_UI7.json'),
-(2, 'urn:schemas-micasaverde-com:device:TemperatureSensor:1','','',''),
-(3, 'urn:schemas-upnp-org:device:BinaryLight:1','','','');
+(2, 'urn:schemas-micasaverde-com:device:TemperatureSensor:1','','D_TemperatureSensor1.xml','D_TemperatureSensor1.json'),
+(3, 'urn:schemas-upnp-org:device:BinaryLight:1','','D_BinaryLight1.xml','D_BinaryLight1.json');
 
 DROP TABLE  IF EXISTS devices;
 
