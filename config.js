@@ -9,7 +9,7 @@ module.exports = {
 	dbpwd			: "xxx",
 	dbname			: "altuiboxdb",
 	jspath			: "javascripts/",
-	controllerType	: "AltuiBox",
+	controllerType	: "A",		// A means ALTUIBOX
 	// mainUser		: "amg0"
 	EngineRefreshTimer_ms : 5000
 }

@@ -1570,13 +1570,15 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			_dataEngine = setTimeout( _refreshEngine, 3000 );
 			if (bFirst)
 				EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
-			EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);
 		})
-		.fail(function(jqXHR, textStatus) {
+		.fail(function(jqXHR, textStatus, errorThrown) {
+			if (_user_data == {})
+				EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
 			_user_data = {};
 			_dataEngine = setTimeout( _refreshEngine, 2000 );
 		})
 		.always(function() {
+			EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);
 		});
 	};
 	
@@ -1720,7 +1722,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		return ALTUI_NEW_SCENE_ID;
 	};
 	function _getScenesSync() { 
-		return _user_data.scenes; 
+		return _user_data.scenes || [];
 	};
 	function _getBoxInfo() {
 		return {

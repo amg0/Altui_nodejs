@@ -109,7 +109,7 @@ var createDevice = function(id,module) {
 
 var debugDump = function() {
 	// winston.info("device_objects initialized:"+JSON.stringify(device_objects));
-	winston.info("user_data initialized:"+JSON.stringify(user_data));
+	// winston.info("user_data initialized:"+JSON.stringify(user_data));
 };
 
 var refreshEngine = function(callback ) {

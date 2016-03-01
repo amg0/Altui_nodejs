@@ -15,7 +15,7 @@ var MultiBox = ( function( window, undefined ) {
 	var _devicetypesDB = {};
 	_devicetypesDB[0] = {};
 	var _controllers = [
-		{ ip:''			  ,  controller:null },		// no IP = primary box on which we opened the web page
+		// { ip:''			  ,  controller:null },		// no IP = primary box on which we opened the web page
 		// { ip:'192.168.1.5',  controller:null }		// no IP = primary box on which we opened the web page
 		//http://192.168.1.16:3480/luvd/S_IPhone.xml
 		//http://192.168.1.16:3480/data_request?id=device
@@ -120,10 +120,11 @@ var MultiBox = ( function( window, undefined ) {
 	};
 	
 	function _initEngine(extraController,firstuserdata, maincontrollertype) {
+		
 		function _AllLoaded(eventname) {
 			switch(eventname) {
 				case "on_ui_userDataLoaded":
-						UIManager.refreshUI( true , true );	// full & first time full display
+						// UIManager.refreshUI( true , true );	// full & first time full display
 						break;
 				case "on_ui_userDataFirstLoaded":
 					break;
@@ -131,47 +132,58 @@ var MultiBox = ( function( window, undefined ) {
 			// console.log(eventname);
 			EventBus.publishEvent(eventname);
 		};
-		maincontrollertype = maincontrollertype || "VeraBox";
-		EventBus.waitForAll( "on_ui_userDataFirstLoaded", _getAllEvents("on_ui_userDataFirstLoaded"), this, _AllLoaded );
-		EventBus.waitForAll("on_ui_userDataLoaded", _getAllEvents("on_ui_userDataLoaded"), this, _AllLoaded );
-							
+
 		// initialize controller 0 right away, no need to wait					
-		//
-		switch(maincontrollertype) {
-			case "AltuiBox":
-				_controllers[0].controller = new AltuiBox(0,'');		// create the main controller
+		maincontrollertype = maincontrollertype || "V";
+		var newcontroller = {
+			ip:'', 
+			type:maincontrollertype, 
+			controller:null
+		};
+		switch(newcontroller.type) {
+			case "A":
+				newcontroller.controller = new AltuiBox(0,'');		// create the main controller
 				break;
-			case "VeraBox":
+			case "V":
 			default:
-				_controllers[0].controller = new VeraBox(0,'');		// create the main controller
+				newcontroller.controller = new VeraBox(0,'');		// create the main controller
 		}
-		_controllers[0].controller.initEngine( firstuserdata );
+		_controllers.push(newcontroller);
 		
 		// add the extra controllers
 		if (extraController.trim().length>0)
 			$.each(extraController.split(','), function(idx,ctrlinfo) {
-				ctrlinfo = ctrlinfo.trim();
-				var splits = ctrlinfo.split("-");
-				_controllers.push({ ip:splits[0], controller:null, type:splits[1] || 'V' });
-			});
-		
-		// initialize controllers that are not yet initialized
-		$.each(_controllers, function(idx,box) {
-			// init device type DB for that controller
-			if (_devicetypesDB[idx]==null)
-				_devicetypesDB[idx]={};
-			if (box.controller == null) {
-				switch (box.type) {
+				ctrlinfo = ctrlinfo;
+				var splits = ctrlinfo.trim().split("-");
+				var newcontroller = {
+					ip:splits[0], 
+					type:splits[1] || 'V', 
+					controller:null
+				}
+				switch (newcontroller .type) {
 					case 'A':
-						box.controller = new AltuiBox(idx,box.ip);
+						newcontroller.controller = new AltuiBox(1+idx,newcontroller.ip);
 						break;
 					case 'V':
 					default:
-						box.controller = new VeraBox(idx,box.ip);
+						newcontroller.controller = new VeraBox(1+idx,newcontroller.ip);
 				}
-				box.controller.initEngine();		// will raise("on_ui_userDataFirstLoaded_"+_uniqID) ("on_ui_userDataLoaded_"+_uniqID)
-			}
+				_controllers.push(newcontroller);
+
+				// init device type DB for that controller
+				if (_devicetypesDB[idx]==null)
+					_devicetypesDB[idx]={};
+			});
+
+		// prepare to wait for proper initialization
+		EventBus.waitForAll( "on_ui_userDataFirstLoaded", _getAllEvents("on_ui_userDataFirstLoaded"), this, _AllLoaded );
+		EventBus.waitForAll("on_ui_userDataLoaded", _getAllEvents("on_ui_userDataLoaded"), this, _AllLoaded );
+
+		// now start the engine
+		$.each(_controllers, function(idx,box) {
+			box.controller.initEngine( (idx==0) ? firstuserdata : null );		// will raise("on_ui_userDataFirstLoaded_"+_uniqID) ("on_ui_userDataLoaded_"+_uniqID)
 		});
+
 	};
 	function _saveEngine() {
 		$.each(_controllers, function(idx,box) {
