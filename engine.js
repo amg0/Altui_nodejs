@@ -158,6 +158,7 @@ var refreshEngine = function(callback ) {
 		},
 	], function(err) { //This function gets called after the n tasks have called their "task callbacks"
 		if (err) winston.error(err);
+		
 		async.each(user_data.devices, 
 			function(device,callback) {
 				var devtype = device_types[ device.device_type ];
@@ -195,10 +196,12 @@ exports.setState = function (deviceid, service, variable , value, cbfunc) {
 				var results = results;
 				if (error) {
 					winston.error(error);
-					(cbfunc)(error,"fail");
+					if (myutils.isFunction(cbfunc))						
+						(cbfunc)(error,"fail");
 				} else {
 					refreshEngine(function(error,user_data) {
-						(cbfunc)(err,results);
+						if (myutils.isFunction(cbfunc))						
+							(cbfunc)(err,results);
 					});
 				}
 			});
@@ -208,10 +211,12 @@ exports.setState = function (deviceid, service, variable , value, cbfunc) {
 				var results = results;
 				if (error) {
 					winston.error(error);
-					(cbfunc)(error,"fail");
+					if (myutils.isFunction(cbfunc))						
+						(cbfunc)(error,"fail");
 				} else {
 					refreshEngine(function(error,user_data) {
-						(cbfunc)(error,results);
+						if (myutils.isFunction(cbfunc))						
+							(cbfunc)(error,results);
 					});
 				}
 			});
@@ -224,13 +229,15 @@ exports.runAction = function(id,service,action,params,cbfunc) {
 	device_objects[id].CallAction( service,action,params, function(error, results) {
 		if (error) {
 			winston.error(error);
-			(cbfunc)(error,"fail");
+			if (myutils.isFunction(cbfunc))						
+				(cbfunc)(error,"fail");
 		}
 		else {
 			// then refresh internal engine data
 			var results = results;
 			refreshEngine(function(error,user_data) {
-				(cbfunc)(error,results);
+				if (myutils.isFunction(cbfunc))						
+					(cbfunc)(error,results);
 			});
 		}
 	});
