@@ -382,13 +382,12 @@ var MultiBox = ( function( window, undefined ) {
 		return _controllers[0].controller.getDeviceByType(str);
 	};
 	function _getDeviceActions(device,cbfunc) {
-		if (device==null) 
+		if (device==null) {
 			cbfunc([]);
-		else {
-			var elems = device.altuiid.split("-");
-			return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getDeviceActions(device,cbfunc);
+			return [];
 		}
-		return [];
+		var elems = device.altuiid.split("-");
+		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getDeviceActions(device,cbfunc);
 	};
 	function _getDeviceEvents(device) {
 		if (device==null) return [];
@@ -452,7 +451,7 @@ var MultiBox = ( function( window, undefined ) {
 	};
 	function _runAction(device, service, action, params,cbfunc) {
 		var elems = device.altuiid.split("-");
-		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPAction(elems[1], service, action, params,cbfunc);
+		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.runAction( elems[1], service, action, params, cbfunc )
 	};
 	function _runActionByAltuiID(altuiid, service, action, params,cbfunc) {
 		var elems = altuiid.split("-");
@@ -693,10 +692,10 @@ var MultiBox = ( function( window, undefined ) {
 	function _triggerAltUIUpgrade(urlsuffix,newrev) {
 		return _controllers[0].controller.triggerAltUIUpgrade(urlsuffix,newrev);
 	};
-	function _buildUPnPGetFileUrl(altuiid,name) {
-		var elems = altuiid.split("-");
-		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().buildUPnPGetFileUrl(name);
-	};
+	// function _buildUPnPGetFileUrl(altuiid,name) {
+		// var elems = altuiid.split("-");
+		// return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().buildUPnPGetFileUrl(name);
+	// };
 	
   return {
 	//---------------------------------------------------------
@@ -833,7 +832,7 @@ var MultiBox = ( function( window, undefined ) {
 	isUserDataCached	: _isUserDataCached,	//()
 	getIconPath			: _getIconPath,			// (device,str)
 	getIcon				: _getIcon,				// ( controllerid, imgpath , cbfunc )
-	buildUPnPGetFileUrl : _buildUPnPGetFileUrl,	// (name)
+	// buildUPnPGetFileUrl : _buildUPnPGetFileUrl,	// (name)
 	
 	// Upgrade
 	triggerAltUIUpgrade : _triggerAltUIUpgrade,	// (suffix,newrev)  : newrev number in TRAC

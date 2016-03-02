@@ -12,9 +12,49 @@
 
 var ALTUI_NEW_SCENE_ID = -1;
 
-var UserDataHelper = (function() { 
+var UserDataHelper = (function(user_data) { 
+	var _user_data = user_data;
 	return {
-		getCategoryTitle : function(_user_data,catnum) {
+		findDeviceIdxByID : function (devid) {
+			for (var i=0; i<_user_data.devices.length; i++ ) {
+				if (_user_data.devices[i].id==devid)
+					return i;
+			}
+			return -1;
+		},
+		getDeviceByID : function ( devid ) {
+			var idx = this.findDeviceIdxByID(devid);
+			if (idx!=-1) {
+				return _user_data.devices[idx];
+			}
+			return null;
+		},
+		isDeviceZwave : function (device) {
+			if (device && device.id_parent) {
+				var parent = this.getDeviceByID( device.id_parent );
+				if (parent) {
+					if (parent.device_type == "urn:schemas-micasaverde-com:device:ZWaveNetwork:1")
+						return true;
+				}
+			}
+			return false;
+		},
+		getStatus : function( deviceid, service, variable ) {
+			var val = null;
+			$.each(_user_data.devices,function(idx,device) {
+				if (device.id==deviceid) {
+					$.each(device.states, function(stateidx,state) {
+						if ((state.service==service) && (state.variable==variable)) {
+							val= state.value;
+							return false;
+						}
+					});
+					return ( val == null );
+				}
+			});
+			return val;
+		},
+		getCategoryTitle : function(catnum) {
 			if (catnum==undefined)
 				return '';
 			
@@ -28,8 +68,121 @@ var UserDataHelper = (function() {
 			});
 			return (found !=undefined) ? found : '';
 		},
+		evaluateConditions(deviceid,devsubcat,conditions) {
+			var bResult = false;
+			var expressions=[];
+			var that = this;
+			$.each(conditions, function(i,condition){
+				// strange device JSON sometime ... ex zWave repeater, condition is not defined
+				if ( (condition.service!=undefined) && (condition.variable!=undefined) &&
+					 ( (condition.subcategory_num==undefined) || (condition.subcategory_num==0) || (devsubcat==-1) || (condition.subcategory_num==devsubcat) ) )
+				{
+					var str = "";
+					if (isInteger( condition.value )) {
+						var val = that.getStatus( deviceid, condition.service, condition.variable );
+						if (val=="")
+							AltuiDebug.debug( "devid:{0} service:{1} variable:{2} devsubcat:{3} value:'{4}' should not be null".format( 
+								deviceid,
+								condition.service, 
+								condition.variable,
+								devsubcat,
+								val));
+						val = val || 0;
+						str = "({0} {1} {2})".format(
+							val,
+							condition.operator, 
+							condition.value 
+						);
+					}
+					else {
+						str = "('{0}' {1} '{2}')".format(
+							that.getStatus( deviceid, condition.service, condition.variable ),
+							condition.operator, 
+							condition.value 
+						);
+					}
+					expressions.push(str);
+				}
+				else {
+					AltuiDebug.debug("Invalid State Icon condition definition for deviceid:"+deviceid);
+				}
+			});
+			var str = expressions.join(" && ");
+			AltuiDebug.debug("_evaluateConditions(deviceid:{0} devsubcat:{1} str:{2} conditions:{3})".format(deviceid,devsubcat,str,JSON.stringify(conditions)));
+			var bResult = eval(str) ;
+			return (bResult==undefined) ? false : bResult ;
+		},
+		// load actions from S files
+		_loadDeviceActions : function (controller,dt,cbfunc) {
+			function __findAction(actions,name) {
+				var bfound = null;
+				$.each(actions,function(i,o) {
+					if (o.name==name) {
+						bfound = o;
+						return false;
+					}
+				});
+				return bfound;
+			}
+			if (dt.Services) {
+				var todo = dt.Services.length;
+				$.each(dt.Services, function (idx,service) {
+					// warning, async call, so result comes later. we need to wait until completion
+					var that = service.Actions;
+					// if (that.length==0) 	// if actions are not already loaded
+					// {
+						FileDB.getFileContent(controller,service.SFilename , function( xmlstr ) {
+							var xml = $( $.parseXML( xmlstr ) );
+							$.each(xml.find("action"), function( idx,action) {
+								var name = $(action).find("name").first().text();	// action name is the first one
+								if (__findAction(that,name)==null)
+								{
+									var input=[];
+									var output=[];
+									$.each( $(action).find("argument"), function( idx,argument) {
+										var direction = $(argument).find("direction").text();
+										var name = $(argument).find("name").text();
+										if (direction == "in")
+											input.push( name );
+										else
+											output.push( name );
+									});
+									that.push( {
+										name : name,
+										input : input,
+										output : output
+									} );
+								}
+							});
+							todo--;
+							if (todo==0)
+								cbfunc(dt.Services);
+						});
+					// } 
+					// else		// actions were already loaded
+					// {
+						// cbfunc(dt.Services);
+					// }
+				});
+				return;
+			}
+			AltuiDebug.debug("_loadDeviceActions() : no services");	
+			return;
+		},
+		getDeviceActions : function (device,cbfunc) {
+			if (device && device.id!=0) {
+				var controller = MultiBox.controllerOf(device.altuiid).controller;
+				var _devicetypesDB = MultiBox.getDeviceTypesDB(controller);
+				var dt = _devicetypesDB[device.device_type];
+				this._loadDeviceActions(controller,dt,cbfunc);
+			}
+			else {
+				AltuiDebug.debug("_getDeviceActions(null) : null device");
+				cbfunc([]);
+			}
+		},
 	};
-})();
+});
 
 var VeraBox = ( function( uniq_id, ip_addr ) {
 
@@ -237,7 +390,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	// Get Rooms  , call a callback function asynchronously, or return array of rooms
 	function _getRooms( func , filterfunc, endfunc) {
 		if (_rooms != null ) {
-			_asyncResponse( _rooms.sort(altuiSortByName), func , filterfunc, endfunc)
+			return _asyncResponse( _rooms.sort(altuiSortByName), func , filterfunc, endfunc)
 		}
 		else
 			setTimeout(function(){ 
@@ -262,13 +415,13 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	// Get Rooms  , call a callback function asynchronously, or return array of rooms
 	function _getScenes( func , filterfunc, endfunc ) {
 		if (_scenes != null )
-			_asyncResponse( _scenes.sort(altuiSortByName), func , filterfunc, endfunc);
+			return _asyncResponse( _scenes.sort(altuiSortByName), func , filterfunc, endfunc);
 		return _asyncResponse( [], func , filterfunc, endfunc);;
 	};
 	
 	function _getUsers(func , filterfunc, endfunc ) {
 		if (_user_data.users !=null )
-			_asyncResponse( _user_data.users.sort(altuiSortByName2), func , filterfunc, endfunc);
+			return _asyncResponse( _user_data.users.sort(altuiSortByName2), func , filterfunc, endfunc);
 		return _user_data.users;
 	};
 	function _getUsersSync() {
@@ -288,7 +441,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	};
 	function _getPlugins( func , endfunc ) {
 		if (_user_data.InstalledPlugins2)
-			_asyncResponse( _user_data.InstalledPlugins2, func , null, endfunc);
+			return _asyncResponse( _user_data.InstalledPlugins2, func , null, endfunc);
 		return _user_data.InstalledPlugins2;
 	};
 	
@@ -305,7 +458,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	
 	function _getDevices( func , filterfunc, endfunc ) {
 		if (_devices !=null)
-			_asyncResponse( _devices.sort(altuiSortByName), func, filterfunc, endfunc )
+			return _asyncResponse( _devices.sort(altuiSortByName), func, filterfunc, endfunc )
 		return _asyncResponse( [], func, filterfunc, endfunc );
 	};
 	function _getCategories( cbfunc, filterfunc, endfunc )
@@ -325,10 +478,9 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 					// PageMessage.message( _T("Controller {0} is busy, be patient.").format(_upnpHelper.getIpAddr()) , "warning");
 				}
 			});
-		} else {
-			_asyncResponse( _categories.sort(altuiSortByName), cbfunc, filterfunc, endfunc );
-		}
-		return _categories;
+			return [];
+		} 
+		return _asyncResponse( _categories.sort(altuiSortByName), cbfunc, filterfunc, endfunc );
 	};
 	
 	function _getIconPath(name) {
@@ -359,15 +511,6 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 			return 12;
 		return ( parseInt(_user_data.mode_change_delay || 9) +3);
 	};
-	function _findDeviceIdxByID(devid)
-	{
-		for (var i=0; i<_user_data.devices.length; i++ ) {
-			if (_user_data.devices[i].id==devid)
-				return i;
-		}
-		return -1;
-	};
-
 	function _getDeviceByType( device_type ) {
 		for (var i=0; i<_user_data.devices.length; i++ ) {
 			if (_user_data.devices[i].device_type==device_type)
@@ -387,13 +530,8 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	
 	function _getDeviceByID( devid ) {
 		if (devid==0)
-			return _hagdevice;
-		
-		var idx = _findDeviceIdxByID(devid);
-		if (idx!=-1) {
-			return _user_data.devices[idx];
-		}
-		return null;
+			return _hagdevice;		
+		return UserDataHelper(_user_data).getDeviceByID(devid);
 	};
 
 	function _getSceneByID(sceneid) {
@@ -447,10 +585,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 
 	function _getStatus( deviceid, service, variable )
 	{
-		var state = _getStatusObject( deviceid, service, variable )
-		if (state==null)
-			return null;
-		return state.value;
+		return UserDataHelper(_user_data).getStatus(deviceid, service, variable);
 	};
 
 	function _getJobStatus( jobid , cbfunc ) 
@@ -504,47 +639,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	};
 	
 	function _evaluateConditions(deviceid,devsubcat,conditions) {
-		var bResult = false;
-		var expressions=[];
-		$.each(conditions, function(i,condition){
-			// strange device JSON sometime ... ex zWave repeater, condition is not defined
-			if ( (condition.service!=undefined) && (condition.variable!=undefined) &&
-				 ( (condition.subcategory_num==undefined) || (condition.subcategory_num==0) || (devsubcat==-1) || (condition.subcategory_num==devsubcat) ) )
-			{
-				var str = "";
-				if (isInteger( condition.value )) {
-					var val = _getStatus( deviceid, condition.service, condition.variable );
-					if (val=="")
-						AltuiDebug.debug( "devid:{0} service:{1} variable:{2} devsubcat:{3} value:'{4}' should not be null".format( 
-							deviceid,
-							condition.service, 
-							condition.variable,
-							devsubcat,
-							val));
-					val = val || 0;
-					str = "({0} {1} {2})".format(
-						val,
-						condition.operator, 
-						condition.value 
-					);
-				}
-				else {
-					str = "('{0}' {1} '{2}')".format(
-						_getStatus( deviceid, condition.service, condition.variable ),
-						condition.operator, 
-						condition.value 
-					);
-				}
-				expressions.push(str);
-			}
-			else {
-				AltuiDebug.debug("Invalid State Icon condition definition for deviceid:"+deviceid);
-			}
-		});
-		var str = expressions.join(" && ");
-		AltuiDebug.debug("_evaluateConditions(deviceid:{0} devsubcat:{1} str:{2} conditions:{3})".format(deviceid,devsubcat,str,JSON.stringify(conditions)));
-		var bResult = eval(str) ;
-		return (bResult==undefined) ? false : bResult ;
+		return UserDataHelper(_user_data).evaluateConditions(deviceid,devsubcat,conditions);
 	};
 
 	function _refreshEngine() {
@@ -564,7 +659,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 					if (data.devices != undefined)
 					{
 						$.each(data.devices, function( idx, device) {
-							var userdata_device_idx = _findDeviceIdxByID(device.id);
+							var userdata_device_idx = UserDataHelper(_user_data).findDeviceIdxByID(device.id);
 							if (userdata_device_idx!=-1) {								
 								_user_data.devices[userdata_device_idx].status = device.status;
 								_user_data.devices[userdata_device_idx].Jobs = device.Jobs;
@@ -933,7 +1028,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 
 	function _getCategoryTitle(catnum)
 	{
-		return UserDataHelper.getCategoryTitle(_user_data,catnum);
+		return UserDataHelper(_user_data).getCategoryTitle(_user_data,catnum);
 	};
 	
 	function _updateSceneUserData(scene)
@@ -1121,64 +1216,6 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		_doPart();
 	};
 
-	// load actions from S files
-	function _loadDeviceActions(dt,cbfunc) {
-		function __findAction(actions,name) {
-			var bfound = null;
-			$.each(actions,function(i,o) {
-				if (o.name==name) {
-					bfound = o;
-					return false;
-				}
-			});
-			return bfound;
-		}
-		if (dt.Services) {
-			var todo = dt.Services.length;
-			$.each(dt.Services, function (idx,service) {
-				// warning, async call, so result comes later. we need to wait until completion
-				var that = service.Actions;
-				// if (that.length==0) 	// if actions are not already loaded
-				// {
-					FileDB.getFileContent(_uniqID,service.SFilename , function( xmlstr ) {
-						var xml = $( $.parseXML( xmlstr ) );
-						$.each(xml.find("action"), function( idx,action) {
-							var name = $(action).find("name").first().text();	// action name is the first one
-							if (__findAction(that,name)==null)
-							{
-								var input=[];
-								var output=[];
-								$.each( $(action).find("argument"), function( idx,argument) {
-									var direction = $(argument).find("direction").text();
-									var name = $(argument).find("name").text();
-									if (direction == "in")
-										input.push( name );
-									else
-										output.push( name );
-								});
-								that.push( {
-									name : name,
-									input : input,
-									output : output
-								} );
-							}
-						});
-						todo--;
-						if (todo==0)
-							cbfunc(dt.Services);
-					});
-				// } 
-				// else		// actions were already loaded
-				// {
-					// cbfunc(dt.Services);
-				// }
-			});
-			return;
-		}
-		AltuiDebug.debug("_loadDeviceActions() : no services");	
-		return;
-	};
-		
 	function _getSceneHistory( id, cbfunc) {
 		// var cmd = "cat /var/log/cmh/LuaUPnP.log | grep \"Device_Variable::m_szValue_set device: {0}.*;1m{1}\"".format(device.id,state.variable);
 		var cmd = "cat /var/log/cmh/LuaUPnP.log | grep '"+'\t'+"Scene::RunScene running {0} '".format(id);
@@ -1235,16 +1272,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	};
 
 	function _getDeviceActions(device,cbfunc) {
-		if (device && device.id!=0) {
-			var controller = MultiBox.controllerOf(device.altuiid).controller;
-			var _devicetypesDB = MultiBox.getDeviceTypesDB(controller);
-			var dt = _devicetypesDB[device.device_type];
-			_loadDeviceActions(dt,cbfunc);
-		}
-		else {
-			AltuiDebug.debug("_getDeviceActions(null) : null device");
-			cbfunc([]);
-		}
+		return UserDataHelper(_user_data).getDeviceActions(device,cbfunc);
 	};
 	function _runAction( deviceID, service, action, params, cbfunc ) {
 		return _upnpHelper.UPnPAction(	deviceID, service, action, params, cbfunc );	
@@ -1358,14 +1386,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	};
 	
 	function _isDeviceZwave(device) {
-		if (device && device.id_parent) {
-			var parent = _getDeviceByID( device.id_parent );
-			if (parent) {
-				if (parent.device_type == "urn:schemas-micasaverde-com:device:ZWaveNetwork:1")
-					return true;
-			}
-		}
-		return false;
+		return UserDataHelper(_user_data).isDeviceZwave(device);
 	};
 	
 	function _resetPollCounters( cbfunc ) {
@@ -1565,11 +1586,16 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 				if (dt && json)
 					FileDB.getFileContent(_uniqID, json , function( jsonstr ) {
 						if (jsonstr) {
-							// if file found and content != null
-							_user_data.static_data.push(jsonstr);
-							MultiBox.updateDeviceTypeUIDB( _uniqID, dt, jsonstr);				
-							if (dt!=undefined)
-								MultiBox.updateDeviceTypeUPnpDB( _uniqID, dt, device.device_file);	// pass device file so UPNP data can be read
+							try {
+								// if file found and content != null
+								var json = JSON.parse(jsonstr)
+								_user_data.static_data.push(  json );
+								MultiBox.updateDeviceTypeUIDB( _uniqID, dt, json );				
+								if (dt!=undefined)
+									MultiBox.updateDeviceTypeUPnpDB( _uniqID, dt, device.device_file);	// pass device file so UPNP data can be read
+							} catch (e) {
+								console.error("Parsing error:", e); 
+							}
 						}
 					});
 				if (device!=null) {	
@@ -1652,17 +1678,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		return _asyncResponse([], func , filterfunc, endfunc);
 	};
 	function _getStatus( deviceid, service, variable ) {
-		var val = null;
-		$.each(_user_data.devices,function(idx,device) {
-			if (device.id==deviceid) {
-				$.each(device.states, function(stateidx,state) {
-					if ((state.service==service) && (state.variable==variable))
-						val= state.value;
-					return false;
-				});
-			}
-		});
-		return val;
+		return UserDataHelper(_user_data).getStatus( deviceid, service, variable );
 	};
 	function _getStates( deviceid  )
 	{
@@ -1747,7 +1763,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	
 	function _getUsers(func , filterfunc, endfunc ) {
 		if (_user_data.users !=null )
-			_asyncResponse( _user_data.users.sort(altuiSortByName2), func , filterfunc, endfunc);
+			return _asyncResponse( _user_data.users.sort(altuiSortByName2), func , filterfunc, endfunc);
 		return _user_data.users;
 	};
 	function _getUsersSync() {
@@ -1851,31 +1867,17 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	};
 	function _getCategoryTitle(catnum)
 	{
-		return UserDataHelper.getCategoryTitle(_user_data,catnum);
-		// var jqxhr = $.ajax( {
-			// url: _altuibox_url+"/api/engine_data/category/"+catnum,
-			// type: "GET",
-			// cache: false,
-			// datatype: "json"
-		// })
-		// .done(function(data, textStatus, jqXHR) {
-			// if ($.isFunction(cbfunc))
-				// (cbfunc)(data.name);
-		// })
-		// .fail(function(jqXHR, textStatus, errorThrown) {
-			// if ($.isFunction(cbfunc))
-				// (cbfunc)(null);
-		// })
-		// .always(function() {
-		// });		
-		// return jqxhr;
+		return UserDataHelper(_user_data).getCategoryTitle(_user_data,catnum);
+
 	};
 	function _getFileContent( filename , cbfunc) {
 		// http://192.168.1.114:3000/files/D_ALTUI.xml
 		var jqxhr = $.ajax( {
 			url: _altuibox_url+"/files/"+filename,
 			type: "GET",
-			cache: false
+			cache: false,
+			dataType: "text",
+			processData: false			// prevent jquery to process data to receive it as pure TEXT
 		})
 		.done(function(data, textStatus, jqXHR) {
 			if ($.isFunction(cbfunc))
@@ -1890,18 +1892,25 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		});		
 		return jqxhr;
 	};
+	function _getIconPath(iconname) {
+		return "//{0}/images/{1}".format(_ip_addr, iconname);
+	};
+	function _getDeviceActions(device,cbfunc) {
+		return UserDataHelper(_user_data).getDeviceActions(device,cbfunc);
+	};
+
   // explicitly return public methods when this object is instantiated
   return {
 	//---------------------------------------------------------
 	// PUBLIC  functions
 	//---------------------------------------------------------
 	getFileContent :  _getFileContent,
-	getUPnPHelper	: _todo,
-	getIpAddr		: _todo,
-	getUrlHead		: _todo,
+	getUPnPHelper	: function ()   { console.assert(false,"Altuibox controller %s does not have a UPNP interface",_ip_addr); return null; } ,
+	getIpAddr		: function () 	{ return _ip_addr; },
+	getUrlHead		: function ()   { return (_ipaddr=='') ? window.location.pathname : ("http://{0}".format(_ip_addr)); },
 	getDataProviders    : _todo,	// (cbfunc)
 	triggerAltUIUpgrade : _todo,	// (suffix,newrev)  : newrev number in TRAC
-	getIconPath		: _todo,		// ( src )
+	getIconPath		: _getIconPath,		// ( src )
 	getIcon			: _todo, 		// workaround to get image from vera box
 	getWeatherSettings : _getWeatherSettings,
 	isUI5			: function() 	{return false},				
@@ -1919,14 +1928,14 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getDeviceBatteryLevel : _getDeviceBatteryLevel,
 	getDeviceStaticUI : _todo,
 	getDeviceVariableHistory : _todo,
-	getDeviceActions: _todo,
+	getDeviceActions: _getDeviceActions,
 	getDeviceEvents : _todo,
 	getDeviceDependants: _getDeviceDependants,
 	runAction : _runAction,
 	addWatch			: _todo,
 	delWatch			: _todo,
 	getWatches			: _getWatches,
-	isDeviceZwave	: _todo,
+	isDeviceZwave	: 	function(device) { return UserDataHelper(_user_data).isDeviceZwave(device) },
 	getScenes		: _getScenes,
 	getSceneHistory : _todo,
 	getScenesSync	: _getScenesSync,
@@ -1945,7 +1954,9 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getStatus		: _getStatus, //	( deviceid, service, variable )
 	getJobStatus	: _todo,
 	getStates		: _getStates,
-	evaluateConditions : _todo,
+	evaluateConditions : 	function (deviceid,devsubcat,conditions) {
+		return UserDataHelper(_user_data).evaluateConditions(deviceid,devsubcat,conditions);
+	},
 	
 	createDevice	: _todo,
 	deleteDevice	: _todo,
@@ -1967,7 +1978,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getDeviceTypes 	: _todo,
 
 	// energy
-	getPower		: _todo,
+	getPower		: function getPower(cbfunc) { (cbfunc)("No devices") },
 	
 	// color
 	setColor		: _todo,
