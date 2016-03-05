@@ -326,3 +326,10 @@ Localization.init( {
 	"WatchDisplay":"WatchDisplay",
 	"Alert - Camera":"Alerte Caméra"
 });
+
+// override rules with localized version
+SpeechManager.initRules([
+	{r:"(allumer|ouvrir)\\s+.*(%name%)", t:"device", a:{service:"urn:upnp-org:serviceId:SwitchPower1", action:"SetTarget", params:"{ \"newTargetValue\":1}"}},
+	{r:"(éteindre|fermer)\\s+.*(%name%)", t:"device", a:{service:"urn:upnp-org:serviceId:SwitchPower1", action:"SetTarget", params:"{ \"newTargetValue\":0}"}},
+	{r:"(exécuter|lancer)\\s+.*(%name%)", t:"scene" }
+]);

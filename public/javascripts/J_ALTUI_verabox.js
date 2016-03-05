@@ -259,10 +259,6 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	function _initializeJsonp() {
 		jsonp={};
 		jsonp.ud =_user_data;
-		// jsonp.ud.devices=[];
-		// jsonp.ud.scenes=[];
-		// jsonp.ud.rooms=[];
-		// jsonp.ud.static_data=[];
 		return jsonp;
 	};
 	
@@ -766,8 +762,6 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		AltuiDebug.debug("_saveEngine()");
 		var verabox = {
 			_user_data : _user_data,
-			// _user_data_DataVersion :  _user_data_DataVersion,
-			// _user_data_LoadTime : _user_data_LoadTime
 		};
 		return MyLocalStorage.set("VeraBox"+_uniqID,verabox);
 	};
@@ -782,8 +776,6 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		} else {	// or try to get from cache
 			var verabox = MyLocalStorage.get("VeraBox"+_uniqID);
 			if (verabox) {
-				// _user_data_LoadTime 	= verabox._user_data_LoadTime;
-				// _user_data_DataVersion 	= verabox._user_data_DataVersion;
 				_user_data				= verabox._user_data || {};
 			}
 		}
@@ -1575,8 +1567,14 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			var bFirst = ( _user_data=={} );
 			_user_data = $.extend(true,{},data);
 			//assigns altuiids
-			_asyncResponse(_user_data.devices);
-			_asyncResponse(_user_data.scenes);
+			$.each(_user_data.devices, function(idx,device) {
+				device.altuiid = "{0}-{1}".format(_uniqID,device.id);
+				device.favorite=Favorites.get('device',device.altuiid);
+			});
+			$.each(_user_data.scenes, function(idx,scene) {
+				scene.altuiid = "{0}-{1}".format(_uniqID,scene.id);
+				scene.favorite=Favorites.get('scene',scene.altuiid);
+			});
 			_asyncResponse(_user_data.rooms);
 			_user_data.static_data=[];
 			// update upnp information
@@ -1898,7 +1896,49 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	function _getDeviceActions(device,cbfunc) {
 		return UserDataHelper(_user_data).getDeviceActions(device,cbfunc);
 	};
-
+	
+	function _initializeSysinfo() {
+		return {
+			"installation_number" : "12345678",
+			"firmware_version": "0.1",
+			// "zwave_version" : "4.5",
+			// "zwave_homeid" : "016B4491",
+			// "zwave_locale" : "eu",
+			// "hwaddr": "",
+			// "ergykey": "",
+			// "timezone": "Europe|Brussels|CET-1CEST,M3.5.0,M10.5.0/3",
+			// "Server_Device": "vera-us-oem-device11.mios.com",
+			// "Server_Event": "vera-us-oem-event11.mios.com",
+			// "Server_Relay": "vera-eu-oem-relay12.mios.com",
+			// "Server_Storage": "vera-us-oem-storage11.mios.com",
+			// "Server_Support": "vera-us-oem-ts11.mios.com",
+			// "Server_Log": "vera-us-oem-log11.mios.com",
+			// "Server_Firmware": "vera-us-oem-firmware11.mios.com",
+			// "Server_Event": "vera-us-oem-event11.mios.com",
+			// "Server_Account": "vera-us-oem-account11.mios.com",
+			// "Server_Autha": "vera-us-oem-autha11.mios.com",
+			// "Server_Authd": "vera-us-oem-authd11.mios.com",
+			// "rauser": "",
+			// "rapass": "",
+			// "radisabled": "",
+			// "raemail": "",
+			// "raport": "35837",
+			// "auth_user": "",
+			// "remote_only": "1",
+			// "terminal_disabled": "0",
+			// "failsafe_tunnels": "0",
+			// "3g_wan_failover": "0",
+			// "secure_unit": "0",
+			// "manual_version": "1",
+			"platform": "Altuibox",
+			"full_platform": "Altuibox",
+			"skin": "altui",
+			"language": "1",
+			"ui_language": "en",
+			// "account": ""
+		}
+	};
+	
   // explicitly return public methods when this object is instantiated
   return {
 	//---------------------------------------------------------
@@ -1978,7 +2018,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	getDeviceTypes 	: _todo,
 
 	// energy
-	getPower		: function getPower(cbfunc) { (cbfunc)("No devices") },
+	getPower		: function (cbfunc) { (cbfunc)("No devices") },
 	
 	// color
 	setColor		: _todo,
@@ -1993,8 +2033,12 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	// UI5 Compatibility mode: caching user data changes and saving them at user request
 	updateChangeCache : _todo,
 	saveChangeCaches  : _todo,
-	initializeJsonp	  : _todo,
-	initializeSysinfo : _todo,
+	initializeJsonp	  : function () {
+		jsonp={};
+		jsonp.ud =_user_data;
+		return jsonp;
+	},
+	initializeSysinfo : _initializeSysinfo,
 
 	// save page data into altui plugin device
 	saveData		: _todo,

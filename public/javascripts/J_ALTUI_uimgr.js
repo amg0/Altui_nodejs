@@ -8,7 +8,7 @@
 // written devagreement from amg0 / alexis . mermet @ gmail . com
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
   
 /*The MIT License (MIT)
 BOOTGRID: Copyright (c) 2014-2015 Rafael J. Staib
@@ -37,7 +37,7 @@ THE SOFTWARE.
 // Transparent : //drive.google.com/uc?id=0B6TVdm2A9rnNMkx5M0FsLWk2djg&authuser=0&export=download
 
 // UIManager.loadScript('https://www.google.com/jsapi?autoload={"modules":[{"name":"visualization","version":"1","packages":["corechart","table","gauge"]}]}');
-var AltUI_revision = "$Revision: 1225 $";
+var AltUI_revision = "$Revision: 1233 $";
 var NULL_DEVICE = "0-0";
 var NULL_SCENE = "0-0";
 var _HouseModes = [];
@@ -3176,6 +3176,7 @@ var PageMessage = (function(window, undefined ) {
 		Html+="	<button id='altui-toggle-messages' class='btn btn-default dropdown-toggle' type='button' data-toggle='collapse' data-target='#altui-pagemessage-panel' >";
 		Html+=( _T("Messages") + "&nbsp;<span class='caret'></span>");
 		Html+="	</button>";
+		Html+= SpeechManager.getHtml();
 		Html+="	<div class='panel panel-default collapse' id='altui-pagemessage-panel' >";
 		Html+="		<div class='panel-body'>";
 		Html+="			<table class='table table-condensed table-responsive'>";
@@ -3197,7 +3198,10 @@ var PageMessage = (function(window, undefined ) {
 			.on( "click", "#altui-toggle-messages", function() {
 				$(this).find("span").toggleClass( "caret-reversed" );
 			})
-			
+			.off( "click", "#altui-speech-button")
+			.on( "click", "#altui-speech-button", function() {
+				SpeechManager.toggle();
+			})
 	};
 	
 	function _clear() {
@@ -11098,6 +11102,19 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			// console.log("name: "+err.name);// affiche 'Error'
 			// console.log("message: "+err.message); // affiche 'mon message' ou un message d'erreur JavaScript
 		// }
+	},
+	onExecuteVocal: function(commands) {
+		// tokenize 
+		var tokens = commands.split(" ");
+		if (tokens.length==0)
+			return;
+		
+		// try to recognize token 0 as a verb
+		var verb = Localization.reverse(tokens[0]);
+		if (verb == null)
+			return;
+		
+		alert(verb);
 	}
   };	// end of return
 })( window );
@@ -11336,8 +11353,15 @@ $(document).ready(function() {
 
 	var language = getQueryStringValue("lang") || window.navigator.userLanguage || window.navigator.language;
 	AltuiDebug.debug("language:"+language);
-		
 
+	// Initialize Speech Engine and add English rules.
+	// localized rules are overriden later
+	SpeechManager.init(language,UIManager.onExecuteVocal);
+	SpeechManager.initRules([
+		{r:"(switch on|open)\\s+.*(%name%)", t:"device", a:{service:"urn:upnp-org:serviceId:SwitchPower1", action:"SetTarget", params:"{ \"newTargetValue\":1}"}},
+		{r:"(switch off|close)\\s+.*(%name%)", t:"device", a:{service:"urn:upnp-org:serviceId:SwitchPower1", action:"SetTarget", params:"{ \"newTargetValue\":0}"}},
+		{r:"(run|launch)\\s+.*(%name%)", t:"scene" }
+	]);	
 	// if lang is on the url, the js is already loaded by the LUA module. 
 	if ( (language.substring(0, 2) != 'en') && (getQueryStringValue("lang")=="") ){
 	// if (false) {
@@ -11356,5 +11380,4 @@ $(document).ready(function() {
 		AltuiDebug.debug("Locale file not needed");
 		_initLocalizedGlobals();
 	}
-
 });
