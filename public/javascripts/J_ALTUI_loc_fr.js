@@ -329,7 +329,9 @@ Localization.init( {
 
 // override rules with localized version
 SpeechManager.initRules([
-	{r:"(allumer|ouvrir)\\s+.*(%name%)", t:"device", a:{service:"urn:upnp-org:serviceId:SwitchPower1", action:"SetTarget", params:"{ \"newTargetValue\":1}"}},
-	{r:"(éteindre|fermer)\\s+.*(%name%)", t:"device", a:{service:"urn:upnp-org:serviceId:SwitchPower1", action:"SetTarget", params:"{ \"newTargetValue\":0}"}},
-	{r:"(exécuter|lancer)\\s+.*(%name%)", t:"scene" }
+	{r:"(allumer|allume|ouvrir|ouvre)\\s+.*(%name%)", t:"device", a:{service:"urn:upnp-org:serviceId:SwitchPower1", action:"SetTarget", params:"{ \"newTargetValue\":1}"}},
+	{r:"(éteindre|éteins|fermer|ferme)\\s+.*(%name%)", t:"device", a:{service:"urn:upnp-org:serviceId:SwitchPower1", action:"SetTarget", params:"{ \"newTargetValue\":0}"}},
+	{r:"(exécuter|lancer)\\s+.*(%name%)", t:"scene" },
+	{r:"(montre|montrer|ouvre|ouvrir)\\s+.*(%name%)", t:"altui" },
+	{r:"(montre|montrer|ouvre|ouvrir)\\s+.*(%name%)", t:"room" }
 ]);

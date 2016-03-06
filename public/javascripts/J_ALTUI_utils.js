@@ -73,7 +73,7 @@ var Localization = ( function (undefined) {
 		return t;
 	};
 
-	var _initTerms = function(terms,reverse_terms) {
+	var _initTerms = function(terms) {
 		_terms = $.extend({},terms);
 		_unknown_terms = {};
 	};
@@ -106,7 +106,21 @@ var SpeechManager = (function() {
 	var _execute_callback = null;
 	var _rules = null;
 	var timer = null;
-	var timer_duration = 2000;
+	var timer_duration = 3000;
+	
+	function _clearTimer() {
+		if (timer) {
+			clearTimeout(timer)
+			timer=false
+		}
+	}
+	function _setTimer() {
+		_clearTimer();
+		timer = setTimeout(function() {
+			if (started==true)
+				recognition.stop();
+		},timer_duration);
+	}
 	
 	if (typeof(webkitSpeechRecognition) !=undefined ) {
 		// Save a reference to the global object (window in the browser)
@@ -127,34 +141,37 @@ var SpeechManager = (function() {
 			recognition.interimResults = true;
 
 			recognition.onstart = function() { 
-				started = true;
 				$("#altui-speech-button").addClass('btn-danger').removeClass('btn-default');
-				timer = setTimeout(SpeechManager.toggle,timer_duration);
+				started = true;
+				_setTimer();
 			}
 			recognition.onerror = function(event) { 
 				PageMessage.message(_T("HTML5 Speech Recognition reported an error: "+event.error),"info");		
+				started = false;
+				_clearTimer();
 			}
 			recognition.onend = function() { 
 				started = false;
+				_clearTimer();
 				$("#altui-speech-button").removeClass('btn-danger').addClass('btn-default');
 				$("#altui-speech-text").html("");
-				onExecuteResults();
+				//onExecuteResults();
 				final_transcript = [];
 			}
 			recognition.onresult = function(event) { 
-				if (timer)
-					clearTimeout(timer);
-				
+				_clearTimer();
 				var interim_transcript = '';
 				for (var i = event.resultIndex; i < event.results.length; ++i) {
 				  if (event.results[i].isFinal) {
-					final_transcript.push( event.results[i][0].transcript.trim() );
+					  var cmd = event.results[i][0].transcript.trim();
+					final_transcript.push( cmd );
+					onExecuteResults(cmd);
 				  } else {
 					interim_transcript += event.results[i][0].transcript;
 				  }
 				}
 				$("#altui-speech-text").html("{0},<span class='text-muted'>{1}</span>".format(final_transcript.join(","),interim_transcript));
-				timer = setTimeout(SpeechManager.toggle,timer_duration);
+				_setTimer();
 			}
 		} else {
 			console.log("ALTUI:HTML5 Speech Recognition (xxxSpeechRecognition) not supported in this browser");		
@@ -163,25 +180,34 @@ var SpeechManager = (function() {
 			console.log("ALTUI:HTML5 Speech Recognition (webkitSpeechRecognition) not supported in this browser");		
 	};
 	
-	function onExecuteResults() {
+	function onExecuteResults(cmd) {
+
+		var name2AltuiID = {
+			"device":$.map( MultiBox.getDevicesSync(), function( device, idx) { return {name:_spochen(device.name), altuiid:device.altuiid} } ),
+			"scene":$.map( MultiBox.getScenesSync(), function( scene, idx) { return {name:_spochen(scene.name), altuiid:scene.altuiid} } ),
+			"room":$.map( MultiBox.getRoomsSync(), function( room, idx) { return {name:_spochen(room.name), altuiid:room.altuiid, orgname:room.name} } ),
+			"altui":[
+					{ name:_T("Device"), page:"pageDevices" },
+					{ name:_T("Scene"), page:"pageScenes" },
+					{ name:_T("Room"), page:"pageRooms" },
+					{ name:_T("Custom Pages"), page:"pageUsePages" },
+				]
+		};
+		
 		function _spochen(stringToReplace) {
 			stringToReplace = stringToReplace.toLowerCase();
 			stringToReplace = stringToReplace.replace(/[_-]/g, ' ');
 			stringToReplace = stringToReplace.replace(/[^\w\s]/gi, '');
 			return stringToReplace;
 		}
-		// if ($.isFunction(_execute_callback)) 
-			// (_execute_callback)(cmd);
-
-		$.each(final_transcript,function(ifx,command) {
-			var deviceName2AltuiID = $.map( MultiBox.getDevicesSync(), function( device, idx) { return {name:_spochen(device.name), altuiid:device.altuiid} } );
-			var sceneName2AltuiID = $.map( MultiBox.getScenesSync(), function( scene, idx) { return {name:_spochen(scene.name), altuiid:scene.altuiid} } );
+		
+		function _onExecuteCommand(command) {
 			var execution_done = false;
 			// search for a rule that matches
 			$.each(_rules, function(idx,rule) {
 				var rulestr = rule.r;
 				var re = null;
-				var namelist = ((rule.t)=="device") ? deviceName2AltuiID : sceneName2AltuiID;
+				var namelist = name2AltuiID[ rule.t ];
 				$.each(namelist, function (idx,possible) {
 					re = new RegExp(rulestr.replace("%name%",possible.name), 'i');
 					if ((m = re.exec(command)) !== null) {
@@ -201,6 +227,13 @@ var SpeechManager = (function() {
 							case "scene":
 								MultiBox.runSceneByAltuiID(possible.altuiid);
 								break;
+							case "altui":
+								window["UIManager"][possible.page]();	// call function by its name
+								break;
+							case "room":
+								var id = possible.altuiid;
+								UIManager.pageDevices({ room:[possible.orgname] });	// call function by its name
+								break;
 							default:
 								AltuiDebug.warning("Invalid rule type %s",JSON.stringify(rule));
 						}
@@ -213,7 +246,14 @@ var SpeechManager = (function() {
 			});
 			if (execution_done==false)
 				PageMessage.message(_T("could not find a match for voice command:{0}").format(command),"warning");
-		});
+		}
+
+		if (cmd==undefined )
+			$.each(final_transcript,function(ifx,command) {
+				_onExecuteCommand(command);
+			});
+		else
+			_onExecuteCommand(cmd);
 	};
 	return {
 		initRules : function( rules ) {
@@ -239,8 +279,6 @@ var SpeechManager = (function() {
 		},
 		toggle: function() {
 			if (recognition==null) return;
-			if (timer)
-				clearTimeout(timer);
 			try {
 				if (started==true)
 					recognition.stop();
