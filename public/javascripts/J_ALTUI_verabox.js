@@ -730,7 +730,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 				});
 			if (data.InstalledPlugins2)
 				$.each(data.InstalledPlugins2, function(idx,plugin) {
-					plugin.altuiid = "{0}-{1}".format(_uniqID,plugin.id);
+					plugin.altuiid = "{0}-{1}".format(_uniqID,idx);
 				});
 			// update the static ui information for the future displays
 			$.each(_user_data.static_data || [], function(idx,ui_static_data) {

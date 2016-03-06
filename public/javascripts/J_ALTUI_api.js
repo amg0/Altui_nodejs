@@ -290,7 +290,7 @@ var Ajax = (function(window,undefined) {
 					type: options.method,
 					// data: options.parameters,
 					// processData : false,			
-					// dataType: "text"
+					dataType: "text"
 				};
 			} 
 			else {
@@ -299,7 +299,7 @@ var Ajax = (function(window,undefined) {
 					type: options.method,
 					data: options.parameters,
 					// processData : false,			
-					// dataType: "text"
+					dataType: "text"
 				};
 			}
 			// if this is for a remove controller, we need to proxify the url ( and the result )

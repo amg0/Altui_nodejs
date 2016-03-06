@@ -8,7 +8,7 @@
 // written devagreement from amg0 / alexis . mermet @ gmail . com
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
   
 /*The MIT License (MIT)
 BOOTGRID: Copyright (c) 2014-2015 Rafael J. Staib
@@ -37,7 +37,7 @@ THE SOFTWARE.
 // Transparent : //drive.google.com/uc?id=0B6TVdm2A9rnNMkx5M0FsLWk2djg&authuser=0&export=download
 
 // UIManager.loadScript('https://www.google.com/jsapi?autoload={"modules":[{"name":"visualization","version":"1","packages":["corechart","table","gauge"]}]}');
-var AltUI_revision = "$Revision: 1240 $";
+var AltUI_revision = "$Revision: 1246 $";
 var NULL_DEVICE = "0-0";
 var NULL_SCENE = "0-0";
 var _HouseModes = [];
@@ -4896,7 +4896,7 @@ var UIManager  = ( function( window, undefined ) {
 					function _displaySliderValue(uniqid,control,val) {
 						var color = control.ControlCode == "heating_setpoint" ? "text-danger" : "text-primary";
 						var htmlid = "altui-slider-vertical-value-"+uniqid;
-						$("<div id='"+htmlid+"' class='"+color+"'>"+val*10+"</div>")
+						$("<div id='"+htmlid+"' class='"+color+"'>"+val+"</div>")
 							.appendTo( $(domparent) )
 							.css({
 								top: control.Display.Top, 
@@ -4938,7 +4938,7 @@ var UIManager  = ( function( window, undefined ) {
 							left: control.Display.Left, 
 							position:'absolute'})
 						// .width(control.Display.Width)
-						.height(100 /*control.Display.Height*/ )		// height given by class on UI5
+						.height(65 /*control.Display.Height*/ )		// height given by class on UI5
 						.slider( {
 						  orientation: "vertical",
 						  range: "min",
@@ -7936,7 +7936,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			return html;
 		};
 		
-		var pluginTemplate = "<tr><td>{6}</td><td>{0}</td><td>{1}.{2}</td><td>{7}</td><td>{3} {4}</td><td>{5}</td><td>{8}</td></tr>";
+		var pluginTemplate = "<tr><td>{6}</td><td>{0}<div><small>{9}</small></div></td><td>{1}.{2}</td><td>{7}</td><td>{3} {4}</td><td>{5}</td><td>{8}</td></tr>";
 		function drawPlugin(idx, plugin) {
 			var iconTemplate = "<img class='altui-plugin-icon' src='//apps.mios.com/{0}'></img>";
 			var filebutton = _getFileButton(plugin);
@@ -7955,7 +7955,8 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				inputbox+updatebutton,
 				iconTemplate.format(plugin.Icon),
 				filebutton,
-				deletebutton
+				deletebutton,
+				plugin.altuiid
 				);
 			$(".altui-mainpanel tbody").append(pluginTxt);
 			$("button#"+plugin.altuiid+".altui-plugin-question-sign").data("url",plugin.Instructions);
@@ -8003,7 +8004,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				});
 				var plugin = {
 					id:-1,
-					altuiid: value.devaltuiid,		// put the id of the device requesting this file, so that we know the "controller"
+					altuiid: "{0}-x".format(controller),		// put the id of the device requesting this file, so that we know the "controller"
 					Files: value.files
 				};
 				var pluginTxt = pluginTemplate.format(
@@ -8015,7 +8016,8 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 					"",
 					"<img class='altui-plugin-icon' src='//apps.mios.com/images/plugin.png'></img>",
 					_getFileButton(plugin),
-					""
+					"",
+					plugin.altuiid
 					);
 				$(".altui-mainpanel tbody").append(pluginTxt);
 			});

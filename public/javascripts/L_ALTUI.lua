@@ -10,7 +10,7 @@ local MSG_CLASS = "ALTUI"
 local ALTUI_SERVICE = "urn:upnp-org:serviceId:altui1"
 local devicetype = "urn:schemas-upnp-org:device:altui:1"
 local DEBUG_MODE = false
-local version = "v1.15"
+local version = "v1.17"
 local UI7_JSON_FILE= "D_ALTUI_UI7.json"
 local json = require("dkjson")
 if (type(json) == "string") then
@@ -1362,6 +1362,10 @@ local function getDefaultConfig()
 		["ScriptFile"]="J_ALTUI_plugins.js",
 		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawZoneThermostat",
 	}
+	tbl["urn:antor-fr:device:HVAC_ZoneThermostat:1"]= {
+		["ScriptFile"]="J_ALTUI_plugins.js",
+		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawZoneThermostat",
+	}
 	tbl["urn:schemas-micasaverde-com:device:HumiditySensor:1"]= {
 		["ScriptFile"]="J_ALTUI_plugins.js",
 		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawHumidity",
@@ -1663,8 +1667,11 @@ function resetDevice(lul_device,norepeat)
 	-- reset the config
 	local tbl = getDefaultConfig()
 	local default = json.encode( tbl )
-	setVariableIfChanged(ALTUI_SERVICE, "PluginConfig", default, lul_device)
 	debug(string.format("Reseting ALTUI config to %s",default))
+	setVariableIfChanged(ALTUI_SERVICE, "PluginConfig", default, lul_device)
+	
+	debug("Forcing a Luup reload")
+	local httpcode,data = luup.inet.wget("http://localhost:3480/data_request?id=reload",10)
 end
 
 function UPNPregisterDataProvider(lul_device, newName, newUrl, newJsonParameters)
