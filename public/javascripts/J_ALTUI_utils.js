@@ -1019,6 +1019,59 @@ var IconDB = ( function (window, undefined) {
 	}
 } )( window );
 
+
+var HtmlResourcesDB = (function (window,undefined) {
+	var _resourceLoaded=[]
+	$.each( document.scripts, function(idx,s) { _resourceLoaded[$(s).attr("src")] = true  });
+	
+	var _location = document.location.pathname.replace( "/data_request", "" ) + "/";
+	function _loadResourcesAsync( fileNames ) {
+		var d = $.Deferred();
+		// Prepare loaders
+		var loaders = [];
+		$.each( fileNames, function( index, fileName ) {
+			if ( !_resourceLoaded[ fileName ] ) {
+				loaders.push(
+					$.ajax( {
+						url: (fileName.indexOf( "http" ) === 0 ? fileName: _location + fileName),
+						dataType: "script",
+						beforeSend: function( jqXHR, settings ) {
+							jqXHR.fileName = fileName;
+						}
+					} )
+				);
+			}
+		} );
+		// Execute loaders
+		$.when.apply( $, loaders )
+			.done( function( xml, textStatus, jqxhr ) {
+				if (loaders.length === 1) {
+					_resourceLoaded[ jqxhr.fileName ] = true;
+				} else if (loaders.length > 1) {
+					// arguments : [ [ xml, textStatus, jqxhr ], ... ]
+					// clone to avoid loosing the jqxhr as it sees jquery recycles it
+					var args = new Array(arguments.length);
+					for (var i = 0; i < args.length; ++i) {
+						args[i] = cloneObject(arguments[i]);
+					}
+					for (var i = 0; i < args.length; i++) {
+						jqxhr = args[ i ][ 2 ];
+						_resourceLoaded[ jqxhr.fileName ] = true;
+					}
+				}
+				d.resolve();
+			} )
+			.fail( function( jqxhr, textStatus, errorThrown  ) {
+				PageMessage.message( "Load \"" + jqxhr.fileName + "\" : " + textStatus + " - " + errorThrown, "danger");
+				d.reject();
+			} );
+		return d.promise();
+	}
+	return {
+		loadResourcesAsync: _loadResourcesAsync	// return a promise
+	}	
+})();
+
 var FileDB = ( function (window, undefined) {
 	var _dbFile = null;
 	

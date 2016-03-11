@@ -640,6 +640,10 @@ var MultiBox = ( function( window, undefined ) {
 		var elems = altuiid.split("-");
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPUpdatePluginVersion(elems[1],ver,cbfunc);
 	};
+	function _getFileUrl(controllerid, filename ) {
+		var id = controllerid || 0;
+		return _controllers[id].controller.getFileUrl( filename);
+	};
 	function _getFileContent(controllerid, filename , cbfunc) {
 		var id = controllerid || 0;
 		return _controllers[id].controller.getFileContent( filename, cbfunc);
@@ -825,6 +829,7 @@ var MultiBox = ( function( window, undefined ) {
 	saveChangeCaches	: _saveChangeCaches,	//( msgidx ) 
 	updateChangeCache	: _updateChangeCache,	//( target ) 
 	saveData			: _saveData,			//( name, data , cbfunc)
+	getFileUrl			: _getFileUrl,			//(filename)
 	getFileContent		: _getFileContent,		//(Dfilename , function( xmlstr , jqXHR ) 
 	osCommand			: _osCommand,			//(cmd,cbfunc) 
 	getPower			: _getPower,			//(cbfunc)

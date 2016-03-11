@@ -319,6 +319,10 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		});
 	};
 	
+	function _getFileUrl( filename ) {
+		return _upnpHelper.buildUPnPGetFileUrl(filename)
+	};
+	
 	function _getFileContent( filename , cbfunc) {
 		return _upnpHelper.UPnPGetFile( filename, cbfunc);
 	};
@@ -1437,6 +1441,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	getIpAddr		: _getIpAddr,
 	getUrlHead		: _getUrlHead,
 	getDataProviders    : _getDataProviders,	// (cbfunc)
+	getFileUrl			: _getFileUrl,			//(filename)
 	getFileContent :  _getFileContent,			//( filename , cbfunc)
 	triggerAltUIUpgrade : _triggerAltUIUpgrade,	// (suffix,newrev)  : newrev number in TRAC
 	getIconPath		: _getIconPath,		// ( src )
@@ -1868,10 +1873,13 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 		return UserDataHelper(_user_data).getCategoryTitle(_user_data,catnum);
 
 	};
+	function _getFileUrl( filename) {
+		return _altuibox_url+"/files/"+filename;
+	};
 	function _getFileContent( filename , cbfunc) {
 		// http://192.168.1.114:3000/files/D_ALTUI.xml
 		var jqxhr = $.ajax( {
-			url: _altuibox_url+"/files/"+filename,
+			url: _getFileUrl(filename),
 			type: "GET",
 			cache: false,
 			dataType: "text",
@@ -1944,7 +1952,8 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	//---------------------------------------------------------
 	// PUBLIC  functions
 	//---------------------------------------------------------
-	getFileContent :  _getFileContent,
+	getFileUrl		: _getFileUrl,			//(filename)
+	getFileContent  : _getFileContent,
 	getUPnPHelper	: function ()   { console.assert(false,"Altuibox controller %s does not have a UPNP interface",_ip_addr); return null; } ,
 	getIpAddr		: function () 	{ return _ip_addr; },
 	getUrlHead		: function ()   { return (_ipaddr=='') ? window.location.pathname : ("http://{0}".format(_ip_addr)); },

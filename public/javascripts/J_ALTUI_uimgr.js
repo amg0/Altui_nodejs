@@ -37,7 +37,7 @@ THE SOFTWARE.
 // Transparent : //drive.google.com/uc?id=0B6TVdm2A9rnNMkx5M0FsLWk2djg&authuser=0&export=download
 
 // UIManager.loadScript('https://www.google.com/jsapi?autoload={"modules":[{"name":"visualization","version":"1","packages":["corechart","table","gauge"]}]}');
-var AltUI_revision = "$Revision: 1246 $";
+var AltUI_revision = "$Revision: 1268 $";
 var NULL_DEVICE = "0-0";
 var NULL_SCENE = "0-0";
 var _HouseModes = [];
@@ -249,6 +249,7 @@ var styles ="						\
 		z-index: -1;			\
 	}							\
 	.ui-resizable-helper { border: 2px dotted #00F; }	\
+	.ui-resizable-handle { background-color: white; }	\
 	.altui-variable-title {	\
 	}					\
 	.altui-variable-buttons {	\
@@ -465,9 +466,11 @@ var styles ="						\
 		font-size: 1.5em;			\
 		height: 35px;				\
 	}								\
-	textarea#altui-editor-text ,textarea#altui-luascene{		\
-		font-size: 0.9em;			\
-		font-family:monospace;		\
+	div#altui-editor-text, div#altui-luascene {		\
+		height:300px;				\
+	}								\
+	div#altui-editor-sample {		\
+		height:100px;				\
 	}								\
 	div.altui-favorites-container	{		\
 		padding-left: 0px;		\
@@ -622,6 +625,9 @@ var styles ="						\
 	.altui-room-name  {		\
 		cursor: pointer;	\
 	}						\
+	.altui-help-button  {		\
+		margin-left: 5px;	\
+	}						\
 	.altui-quality-color  {		\
 		height: 15px;	\
 		width: 30px;	\
@@ -701,8 +707,9 @@ var LuaEditor = (function () {
 	luaEditorModalTemplate += "      </div>";
 	luaEditorModalTemplate += "      <div class='modal-body'>";
 	luaEditorModalTemplate += "      	<div class='form-group'>";
-	luaEditorModalTemplate += "      		<label for='altui-luacode-text'>Lua Code</label>";
-	luaEditorModalTemplate += "      		<textarea id='altui-luacode-text' rows='10' class='form-control' placeholder='enter code here'>{0}</textarea>";
+	luaEditorModalTemplate += "      		<label for='altui-editor-text'>Lua Code</label>";
+	// luaEditorModalTemplate += "      		<textarea id='altui-luacode-text' rows='10' class='form-control' placeholder='enter code here'>{0}</textarea>";
+	luaEditorModalTemplate += "      		<div id='altui-editor-text'>{0}</div>";
 	luaEditorModalTemplate += "      	</div>";
 	luaEditorModalTemplate += "      </div>";
 	luaEditorModalTemplate += "      <div class='modal-footer'>";
@@ -722,19 +729,36 @@ var LuaEditor = (function () {
 			DialogManager.dlgAddDialogButton(dialog, false, _T("Close"), '', { 'data-dismiss':'modal'} );
 			DialogManager.dlgAddDialogButton(dialog, false, _T("Test Code"),'altui-luacode-test');
 			DialogManager.dlgAddDialogButton(dialog, true, _T("Save Changes"),'altui-luacode-save',{ 'data-dismiss':'modal'});
-			dialog
+
+			// ACE
+			var editor = ace.edit( "altui-editor-text" );
+			editor.setTheme( "ace/theme/"+ (MyLocalStorage.getSettings("EditorTheme") || "monokai") );
+			editor.getSession().setMode( "ace/mode/lua" );
+			editor.setFontSize( MyLocalStorage.getSettings("EditorFontSize") );
+			// resize
+			dialog.modal()
+				.on('shown.bs.modal', function () {
+					var widthparent = $("div#altui-editor-text").closest(".form-group").innerWidth();
+					$("div#altui-editor-text").resizable({
+						// containment: "parent",
+						maxWidth:widthparent,
+						stop: function( event, ui ) {
+							editor.resize();
+						}
+					});
+				})
 				.on("click touchend",".altui-luacode-test",function(){ 
-					var lua = $("#altui-luacode-text").val();
+					var lua = editor.getValue();
 					MultiBox.runLua(0,lua, function(result) {
 						alert(JSON.stringify(result));
 					});
 				})
 				.on("click touchend",".altui-luacode-save",function(){ 
 					// Save Callback
-					var code = $("#altui-luacode-text").val();
+					var code = editor.getValue();
 					onSaveCB(code);
 				});
-			dialog.modal();
+
 		}
 	};
 })();
@@ -1526,7 +1550,7 @@ var DialogManager = ( function() {
 function _formatAction(controller,action) {
 	function _displayDevice(controller,deviceid) {
 		var device = MultiBox.getDeviceByID(controller,deviceid);
-		return device.name + "<small class='text-muted'> (#"+device.altuiid+")</small>";
+		return (device==null) ? 'invalid device' : (device.name + "<small class='text-muted'> (#"+device.altuiid+")</small>");
 	};
 	function _displayArguments(Thearguments) {
 		var html=[];
@@ -2714,7 +2738,7 @@ var SceneEditor = function (scene) {
 			// html +="<form class='col-sm-11' role='form' action='javascript:void(0);'>";
 			html +="  <div class='form-group'>";
 			html += ("    <label for='altui-luascene'>Lua scene code:</label>");
-			html +="    <textarea id='altui-luascene' rows='10' class='form-control' placeholder='enter code here'>"+lua+"</textarea>";
+			html +="    <div id='altui-luascene'>"+lua+"</div>";
 			html +="  </div>";
 			// html +="</form>";
 			return html;
@@ -2737,7 +2761,9 @@ var SceneEditor = function (scene) {
 			})
 			return n;
 		};
-		$("#altui-hint-Lua").html( ($("#altui-luascene").val()=="") ? "" : plusGlyph );
+		var editor = ace.edit( "altui-luascene" );
+		var luacode = editor.getValue();
+		$("#altui-hint-Lua").html( (luacode=="") ? "" : plusGlyph );
 		$("#altui-hint-Triggers").html( '<span class="badge">{0}</span>'.format( scene.triggers.length + scenewatches.length));
 		$("#altui-hint-Timers").html( '<span class="badge">{0}</span>'.format( scene.timers.length));
 		$("#altui-hint-Actions").html( '<span class="badge">{0}</span>'.format( _countActions(scene)) );
@@ -2757,7 +2783,23 @@ var SceneEditor = function (scene) {
 		//
 		// actions
 		//
-		
+		var editor = ace.edit( "altui-luascene" );
+		editor.setTheme( "ace/theme/"+ (MyLocalStorage.getSettings("EditorTheme") || "monokai") );
+		editor.getSession().setMode( "ace/mode/lua" )
+		editor.setFontSize( MyLocalStorage.getSettings("EditorFontSize") )
+		editor.on("change",function(event) { 
+				var lua = editor.getValue();
+				if ( lua != scene.lua ) {
+					_showSaveNeeded();
+				}
+			});
+		$("div#altui-luascene").resizable({
+			// containment: "parent",
+			maxWidth:$("div#altui-luascene").closest(".panel").innerWidth()-30, // ugly but easier, padding 15 on each size
+			stop: function( event, ui ) {
+				editor.resize();
+			}
+		});			
 		_updateAccordeonHeaders();
 		$('#blocklyDiv').data("scenecontroller",scenecontroller);	// indicates to Blockly which scene controller to filter on
 		
@@ -2809,11 +2851,6 @@ var SceneEditor = function (scene) {
 		});
 		
 		$(".altui-mainpanel")
-			.on("change","#altui-luascene",function() { 
-				if ( $("#altui-luascene").val() != scene.lua ) {
-					_showSaveNeeded();
-				}
-			})
 			.on("change","#altui-scene-name-input",function() { 
 				if ( $("#altui-scene-name-input").val() != scene.name ) {
 					scene.name = $("#altui-scene-name-input").val();
@@ -2822,7 +2859,7 @@ var SceneEditor = function (scene) {
 				}
 			})
 			.on("click",".altui-scene-editbutton",function(){ 
-				scene.lua = $("#altui-luascene").val();
+				scene.lua =  editor.getValue();
 				scene.name = $("#altui-scene-name-input").val();
 				if (scene.paused==undefined)
 					scene.paused=0;
@@ -3237,6 +3274,11 @@ var UIManager  = ( function( window, undefined ) {
 		{ id:'Menu2ColumnLimit', type:'number', label:"2-columns Menu's limit", _default:15, min:2, max:30, help:'if a menu has more entries than this number then show the menu entries in 2 columns'  },
 		{ id:'TempUnitOverride', type:'select', label:"Weather Temp Unit (UI5)", _default:'c', choices:'c|f', help:'Unit for temperature'  }
 	];
+	
+	var _editorOptions = [
+		{ id:'EditorFontSize', type:'number', label:"Editor Font Size", _default:12, min:8, max:30, help:'Editor font size in pixels'  },
+	];
+	
 	var edittools = [];
 	var tools = [];
 
@@ -5957,7 +5999,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			// var key_vals=elem.split('=');
 			// defaults[ key_vals[0] ] =  key_vals[1];
 		// });
-		$.each(_checkOptions, function(idx,opt) {
+		$.each( $.merge( $.merge( [], _checkOptions ), _editorOptions ) , function(idx,opt) {
 			if (MyLocalStorage.getSettings(opt.id) == null)
 				if (defaults[opt.id] != undefined )
 					MyLocalStorage.setSettings(opt.id, atob(defaults[opt.id]) );
@@ -5966,7 +6008,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		});
 	};
 	
-	function _initBlockly() {
+	function _initBlockly(callback) {
 		var language = getQueryStringValue("lang") || window.navigator.userLanguage || window.navigator.language;
 		language = language.substring(0, 2);
 		var len = $('script[src="J_ALTUI_b_lua_compressed.js"]').length;
@@ -5976,12 +6018,40 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 					_loadScript("J_ALTUI_b_"+language+".js",function() {
 						_loadScript("J_ALTUI_b_javascript_compressed.js",function() {
 							_loadScript("J_ALTUI_b_lua_compressed.js",function() {
+								if ($.isFunction(callback))
+									(callback)();
 							});
 						});
 					});
 				});
 			});
 		}
+	}
+	function _initACEandJoint(callback) {
+		$("title").before("<link rel='stylesheet' type='text/css' href='//cdnjs.cloudflare.com/ajax/libs/jointjs/0.9.7/joint.css'>");
+		$.when( HtmlResourcesDB.loadResourcesAsync([ 
+				"https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.2/ace.js",
+				"http://www.jointjs.com/js/vendor/lodash/lodash.min.js",
+				// "https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.6.1/lodash.min.js",
+				]) )
+			.done(function(){
+				$.when(HtmlResourcesDB.loadResourcesAsync([
+					"http://www.jointjs.com/js/vendor/backbone/backbone-min.js",
+					// "https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.3.1/backbone-min.js",
+				]))
+				.done(function() {
+					$.when(HtmlResourcesDB.loadResourcesAsync([
+						"https://cdnjs.cloudflare.com/ajax/libs/jointjs/0.9.7/joint.min.js",
+					]))
+					.done(function(){
+						$.when(HtmlResourcesDB.loadResourcesAsync([
+							"http://www.jointjs.com/cms/downloads/joint.shapes.fsa.min.js"
+						]))
+						.done(function(){
+						})
+					})
+				})
+			})
 	};
 	
 	function _initMultiSelect() {
@@ -6017,6 +6087,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		_initDB(devicetypes,cbfunc);
 		_setTheme(themecss);
 		_initMultiSelect();
+		_initACEandJoint();
 		_initBlockly();
 	};
 
@@ -6855,6 +6926,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			{ id:28, title:_T('TblControllers'), onclick:'UIManager.pageTblControllers()', parent:0 },
 			{ id:29, title:_T('TblWatches'), onclick:'UIManager.pageTblWatches()', parent:0 },
 			{ id:30, title:_T('WatchDisplay'), onclick:'UIManager.pageWatchDisplay()', parent:0 },
+			{ id:31, title:_T('Workflow Pages'), onclick:'UIManager.pageWorkflow()', parent:0 },
 		];
 
 		function _parentsOf(child) {
@@ -7253,6 +7325,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			favorites		: (MyLocalStorage.getSettings("ShowFavoriteDevice")==true),
 			invisible 		: (MyLocalStorage.getSettings("ShowInvisibleDevice")==true),
 			batterydevice	: (MyLocalStorage.getSettings("ShowBatteryDevice")==true),
+			zwavedevice		: (MyLocalStorage.getSettings("ShowZWaveDevice")==true),
 			category		: MyLocalStorage.getSettings("CategoryFilter") || 0,
 			filtername		: MyLocalStorage.getSettings("DeviceFilterName") || "",
 			isRoomFilterValid 		: function() {
@@ -7280,7 +7353,8 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				&& ( (_deviceDisplayFilter.category == 0) || ( _deviceDisplayFilter.category.in_array(device.category_num)) ) 
 				&& ( ((_deviceDisplayFilter.favorites == false) && (_deviceDisplayFilter.room!=-2) ) || (device.favorite == true) ) 
 				&& ( (_deviceDisplayFilter.filtername.length==0) || (device.name.search( regexp )!=-1) ) 
-				&& ( (batteryLevel != null) || (false == _deviceDisplayFilter.batterydevice));
+				&& ( (batteryLevel != null) || (false == _deviceDisplayFilter.batterydevice))
+				&& ( (MultiBox.isDeviceZwave(device)==true) || (false == _deviceDisplayFilter.zwavedevice));
 		}
 		
 		function _deviceCreateModalHtml() {
@@ -7356,6 +7430,14 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 						filterHtml+="  <label>";
 						filterHtml+="    <input type='checkbox' value='' id='altui-show-battery'>";
 						filterHtml+="    Battery Devices";
+						filterHtml+="  </label>";
+						filterHtml+="</div>";
+					filterHtml+="</div>";
+					filterHtml+="<div class='form-group'>";
+						filterHtml+="<div class='checkbox'>";
+						filterHtml+="  <label>";
+						filterHtml+="    <input type='checkbox' value='' id='altui-show-zwave'>";
+						filterHtml+="    ZWave Devices";
 						filterHtml+="  </label>";
 						filterHtml+="</div>";
 					filterHtml+="</div>";
@@ -7518,6 +7600,13 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 						MyLocalStorage.setSettings("ShowBatteryDevice",_deviceDisplayFilter.batterydevice);
 						_drawDevices(deviceFilter);
 					});
+
+					$("#altui-show-zwave").prop('checked',_deviceDisplayFilter.zwavedevice)
+						.click( function() {
+							_deviceDisplayFilter.zwavedevice = $(this).prop('checked');
+							MyLocalStorage.setSettings("ShowZWaveDevice",_deviceDisplayFilter.zwavedevice);
+							_drawDevices(deviceFilter);
+						});
 
 					$("#altui-show-invisible").prop('checked',_deviceDisplayFilter.invisible);
 					$("#altui-show-invisible").click( function() {
@@ -7884,6 +7973,88 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		editor.runActions(  );	
 	},
 
+	pageWorkflow: function () 
+	{
+		var _workflows = [
+		]
+		var _workflow_tools = [
+			{glyph:"glyphicon-unchecked", label:"state"}
+		]
+
+		function _drawTools( tools ) {
+			
+		}
+		function _drawWorkflows( workflows ) {
+			$(".altui-mainpanel").append("<div class='col-xs-12'><div id='altui-workflow-canvas'></div></div>");
+			var graph = new joint.dia.Graph();
+
+			var paper = new joint.dia.Paper({
+				el: $('#altui-workflow-canvas'),
+				width: 600,
+				height: 600,
+				gridSize: 1,
+				model: graph
+			});
+
+			function state(x, y, label) {
+				
+				var cell = new joint.shapes.fsa.State({
+					position: { x: x, y: y },
+					size: { width: 60, height: 60 },
+					attrs: {
+						text : { text: label, fill: '#000000', 'font-weight': 'normal' },
+						'circle': {
+							fill: '#f6f6f6',
+							stroke: '#000000',
+							'stroke-width': 2
+						}
+					}
+				});
+				graph.addCell(cell);
+				return cell;
+			}
+
+			function link(source, target, label, vertices) {
+				
+				var cell = new joint.shapes.fsa.Arrow({
+					source: { id: source.id },
+					target: { id: target.id },
+					labels: [{ position: 0.5, attrs: { text: { text: label || '', 'font-weight': 'bold' } } }],
+					vertices: vertices || []
+				});
+				graph.addCell(cell);
+				return cell;
+			}
+
+			var start = new joint.shapes.fsa.StartState({ position: { x: 50, y: 530 } });
+			graph.addCell(start);
+
+			var code  = state(180, 390, 'code');
+			var slash = state(340, 220, 'slash');
+			var star  = state(580, 400, 'star');
+			var line  = state(190, 100, 'line');
+			var block = state(540, 140, 'block');
+
+			link(start, code,  'start');
+			link(code,  slash, '/');
+			link(slash, code,  'other', [{x: 270, y: 300}]);
+			link(slash, line,  '/');
+			link(line,  code,  'new\n line');
+			link(slash, block, '*');
+			link(block, star,  '*');
+			link(star,  block, 'other', [{x: 650, y: 290}]);
+			link(star,  code,  '/',     [{x: 490, y: 310}]);
+			link(line,  line,  'other', [{x: 115,y: 100}, {x: 250, y: 50}]);
+			link(block, block, 'other', [{x: 485,y: 140}, {x: 620, y: 90}]);
+			link(code,  code,  'other', [{x: 180,y: 500}, {x: 305, y: 450}]);
+		}
+		
+		UIManager.clearPage(_T('Workflow Pages'),_T("Workflow Editor"),UIManager.oneColumnLayout);
+		$(".altui-mainpanel").append( "experimental" );
+		_drawTools( _workflow_tools );
+		_drawWorkflows( _workflows )
+	},
+	
 	pagePlugins: function ()
 	{
 		function _sortBySourceName(a,b)
@@ -8035,7 +8206,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				var info = MultiBox.controllerOf(altuiid);
 				var name = $(this).text();
 				FileDB.getFileContent(info.controller,name , function( txt ) {
-					var url = MultiBox.buildUPnPGetFileUrl(altuiid,name);
+					var url = MultiBox.getFileUrl(info.controller,name);
 					UIManager.pageEditor(name,txt,"Download",function(txt) {
 						$(".altui-mainpanel a[download]")[0].click();
 					});
@@ -8077,69 +8248,6 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		
 		$(".altui-mainpanel").append($("<table id='table' class='table table-condensed'><thead><tr><th></th><th>"+_T("Name")+"</th><th>"+_T("Version")+"</th><th>"+_T("Files")+"</th><th>Actions</th><th>"+_T("Update")+"</th><th>"+_T("Uninstall")+"</th></tr></thead><tbody></tbody></table>"));
 		MultiBox.getPlugins( drawPlugin , endDrawPlugin);
-	},
-	
-	pageTriggers: function()
-	{
-		UIManager.clearPage(_T('Triggers'),_T('Triggers'),UIManager.oneColumnLayout);
-		$(".altui-mainpanel").empty();
-		var bFirst=true;
-		var bBody=false;
-		var arr = [];
-		MultiBox.getScenes( null , function(s) {return s.triggers!=null}, function(scenes) {
-			$.each(scenes, function(idx,scene) {
-				var controller = MultiBox.controllerOf(scene.altuiid).controller;
-				var triggers = $.grep(scene.triggers,function(t) { return t.last_run!=undefined});
-				$.each(triggers, function(idx,trigger) {
-					var triggerinfo = _formatTrigger(controller,trigger);
-					arr.push( {
-						lastrun: triggerinfo.lastrun,
-						scene: scene.name,
-						trigger: triggerinfo.name,
-						device: triggerinfo.device,
-						condition: "{0} {1}".format(triggerinfo.descr,triggerinfo.condition),
-						id: scene.altuiid+"-"+idx,
-						lua : trigger.lua || ""
-					})
-				});
-				var sceneWatches = WatchManager.getSceneWatches(scene);
-				if (sceneWatches) {
-					$.each(sceneWatches,function(idx,w){
-						var device = MultiBox.getDeviceByAltuiID(w.deviceid);
-						arr.push( {
-							lastrun: scene.last_run ? _toIso(new Date(scene.last_run*1000)," ") : "",
-							scene: scene.name,
-							trigger: w.service,
-							device: device.name,
-							condition: 'watch '+w.variable,
-							id: scene.altuiid+"-"+idx,
-							lua : w.luaexpr
-						})
-					});
-				}
-			});
-		})
-		
-		var viscols = MyLocalStorage.getSettings("TriggersVisibleCols") || [];
-		if (viscols.length==0)
-			viscols = [ 'lastrun','scene','trigger','device','condition','id','lua'];
-		var options = (MyLocalStorage.getSettings('ShowAllRows')==1) ? {rowCount:-1	} : {};
-		
-		$(".altui-mainpanel").append( HTMLUtils.array2Table(arr,'id',viscols) );
-		$("#altui-grid").bootgrid( 
-			$.extend({
-				caseSensitive: false,
-				statusMapping: {}
-			},options)
-		).bootgrid("sort",{
-			lastrun:"desc"
-		})
-		.on("loaded.rs.jquery.bootgrid", function (e) {
-			var settings = $("#altui-grid").bootgrid("getColumnSettings");
-			viscols = $.map($.grep(settings, function (obj) { return obj.visible == true }),function(obj){ return obj.id;});
-			MyLocalStorage.setSettings("TriggersVisibleCols",viscols);
-			/* your code goes here */
-		});	
 	},
 	
 	pageUsePages: function ()
@@ -8489,6 +8597,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			["jQuery Colorpicker","http://bgrins.github.io/spectrum/","Spectrum Color Picker"],		
 			["proto io","https://proto.io/freebies/onoff/","switch button"],		
 			["Bootstrap Multiselect","http://davidstutz.github.io/bootstrap-multiselect/","Bootstrap based Multiselect control"],		
+			["ACE editor","https://ace.c9.io/","ACE code editor"],		
 			["amg0","http://forum.micasaverde.com/","reachable as amg0 on this forum "]
 		];
 		
@@ -8545,7 +8654,8 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		html +="<form class='altui-editor-form col-sm-11' role='form' action='javascript:void(0);'>";
 		html +="  <div class='form-group'>";
 		html +="    <label for='altui-editor-text'>"+title+":</label>";
-		html +="    <textarea id='altui-editor-text' rows='15' class='form-control' placeholder='xxx'>"+txt.htmlEncode()+"</textarea>";
+		// html +="    <textarea id='altui-editor-text' rows='15' class='form-control' placeholder='xxx'>"+txt.htmlEncode()+"</textarea>";
+		html +="    <div id='altui-editor-text'>"+txt.htmlEncode()+"</div>";
 		html +="  </div>";
 		if (outputarea!=null) {
 			var glyph = glyphTemplate.format('save',_T("Copy to clipboard"), '');
@@ -8563,6 +8673,20 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		html +=("  <button id='altui-luaform-button-"+htmlid+"' type='submit' class='btn btn-default'>"+button+"</button>");
 		html +="</form>";
 		domparent.append(html);
+		
+		// ACE
+		var editor = ace.edit( "altui-editor-text" );
+		editor.setTheme( "ace/theme/"+ (MyLocalStorage.getSettings("EditorTheme") || "monokai") );
+		editor.setFontSize( MyLocalStorage.getSettings("EditorFontSize") );
+		editor.getSession().setMode( "ace/mode/lua" );
+				
+		// resize
+		$("div#altui-editor-text").resizable({
+			stop: function( event, ui ) {
+				editor.resize();
+			}
+		});
+		
 		$("#altui-copyresult-clipboard-"+htmlid).click( function() {
 			Altui_SelectText( "altui-editor-result" );
 			document.execCommand('copy');
@@ -8572,8 +8696,8 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			document.execCommand('copy');
 		});
 		$("#altui-luaform-button-"+htmlid).click( function() {
-			var txt = $("textarea#altui-editor-text").val();
-			onClickCB(txt,$(this));
+			var code = editor.getValue();
+			onClickCB(code,$(this));
 		});
 	},
 	
@@ -10503,7 +10627,132 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			UIManager.genericTableDraw('Scenes','scene',model);
 		});			
 	},
-	
+	pageTriggers2: function()
+	{
+		UIManager.clearPage(_T('Triggers'),_T('Triggers'),UIManager.oneColumnLayout);
+		$(".altui-mainpanel").empty();
+		var bFirst=true;
+		var bBody=false;
+		var arr = [];
+		MultiBox.getScenes( null , function(s) {return s.triggers!=null}, function(scenes) {
+			$.each(scenes, function(idx,scene) {
+				var controller = MultiBox.controllerOf(scene.altuiid).controller;
+				var triggers = $.grep(scene.triggers,function(t) { return t.last_run!=undefined});
+				$.each(triggers, function(idx,trigger) {
+					var triggerinfo = _formatTrigger(controller,trigger);
+					arr.push( {
+						lastrun: triggerinfo.lastrun,
+						scene: scene.name,
+						trigger: triggerinfo.name,
+						device: triggerinfo.device,
+						condition: "{0} {1}".format(triggerinfo.descr,triggerinfo.condition),
+						id: scene.altuiid+"-"+idx,
+						lua : trigger.lua || ""
+					})
+				});
+				var sceneWatches = WatchManager.getSceneWatches(scene);
+				if (sceneWatches) {
+					$.each(sceneWatches,function(idx,w){
+						var device = MultiBox.getDeviceByAltuiID(w.deviceid);
+						arr.push( {
+							lastrun: scene.last_run ? _toIso(new Date(scene.last_run*1000)," ") : "",
+							scene: scene.name,
+							trigger: w.service,
+							device: device.name,
+							condition: 'watch '+w.variable,
+							id: scene.altuiid+"-"+idx,
+							lua : w.luaexpr
+						})
+					});
+				}
+			});
+		})
+		
+		var viscols = MyLocalStorage.getSettings("TriggersVisibleCols") || [];
+		if (viscols.length==0)
+			viscols = [ 'lastrun','scene','trigger','device','condition','id','lua'];
+		var options = (MyLocalStorage.getSettings('ShowAllRows')==1) ? {rowCount:-1	} : {};
+		
+		$(".altui-mainpanel").append( HTMLUtils.array2Table(arr,'id',viscols) );
+		$("#altui-grid").bootgrid( 
+			$.extend({
+				caseSensitive: false,
+				statusMapping: {}
+			},options)
+		).bootgrid("sort",{
+			lastrun:"desc"
+		})
+		.on("loaded.rs.jquery.bootgrid", function (e) {
+			var settings = $("#altui-grid").bootgrid("getColumnSettings");
+			viscols = $.map($.grep(settings, function (obj) { return obj.visible == true }),function(obj){ return obj.id;});
+			MyLocalStorage.setSettings("TriggersVisibleCols",viscols);
+			/* your code goes here */
+		});	
+	},
+		
+	pageTriggers: function()
+	{
+		UIManager.clearPage(_T('Triggers'),_T('Triggers'),UIManager.oneColumnLayout);
+		$(".altui-mainpanel").empty();
+		var arr = [];
+		MultiBox.getScenes( null , function(s) {return s.triggers!=null}, function(scenes) {
+			$.each(scenes, function(idx,scene) {
+				var controller = MultiBox.controllerOf(scene.altuiid).controller;
+				var triggers = $.grep(scene.triggers,function(t) { return t.last_run!=undefined});
+				$.each(triggers, function(idx,trigger) {
+					var triggerinfo = _formatTrigger(controller,trigger);
+					arr.push( {
+						lastrun: triggerinfo.lastrun,
+						scene: scene.name,
+						trigger: triggerinfo.name,
+						device: triggerinfo.device,
+						condition: "{0} {1}".format(triggerinfo.descr,triggerinfo.condition),
+						id: scene.altuiid+"-"+idx,
+						lua : trigger.lua || ""
+					})
+				});
+				var sceneWatches = WatchManager.getSceneWatches(scene);
+				if (sceneWatches) {
+					$.each(sceneWatches,function(idx,w){
+						var device = MultiBox.getDeviceByAltuiID(w.deviceid);
+						arr.push( {
+							lastrun: scene.last_run ? _toIso(new Date(scene.last_run*1000)," ") : "",
+							scene: scene.name,
+							trigger: w.service,
+							device: device.name,
+							condition: 'watch '+w.variable,
+							id: scene.altuiid+"-"+idx,
+							lua : w.luaexpr
+						})
+					});
+				}
+			});
+		})
+		var model = {
+			domcontainer : $(".altui-mainpanel"),
+			data : arr,
+			default_viscols: [ 'lastun','scene','trigger','device','condition','id'],
+			cols: [ 
+				{ name:'id', type:'string', identifier:false, width:50 },
+				{ name:'lastrun', type:'string', formatter:'_enhanceValue', identifier:false, width:90 },
+				{ name:'scene', type:'string', identifier:true, width:80 },
+				{ name:'trigger', type:'string', identifier:false, width:100 },
+				{ name:'device', type:'string', identifier:false, width:150 },
+				{ name:'condition', type:'string', identifier:false, width:200 },
+				{ name:'lua', type:'string', identifier:false, width:150 }
+			],
+			formatters: {
+				"_enhanceValue": function(column, row) {
+					return _enhanceValue(row[column.id]);
+				},
+			},
+			// computers: {				
+			// },
+			// commands: {
+			// },
+		};
+		UIManager.genericTableDraw('Triggers','triggers',model);
+	},
 	genericTableDraw : function(type,htmlid,model) {				
 		model.data = cloneObject(model.data );
 		if (model.data.length==0)
@@ -10627,12 +10876,11 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			if ($('#altui-aftertable-'+htmlid).find('form').length==0) {
 				$("#"+htmlid).table2CSV({
 					delivery : function(data) {
-						UIManager.pageEditorForm($('#altui-aftertable-'+htmlid),'altui-page-editor-'+htmlid,"CSV text",data,null,_T("Copy to clipboard"),function(text,that) {
-							$(that).prev(".form-group").find("#altui-editor-text").select();
-							document.execCommand('copy');
-							$(that).parents("form").remove();
-							PageMessage.message( _T("Data copied in clipboard"), "info");
-						});
+						$(".altui-mainpanel").append("<pre id='altui-temp-txt'>{0}</pre>".format(data));
+						Altui_SelectText( "altui-temp-txt" );
+						document.execCommand('copy');
+						$("#altui-temp-txt").remove();
+						PageMessage.message( _T("Data copied in clipboard"), "info");
 					}
 				});
 			}
@@ -10758,6 +11006,13 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			var refreshbutton = {id:'', class:'altui-graph-refresh pull-right', label:refreshGlyph+' '+_T('Refresh'), title:'refresh' };
 			var html = HTMLUtils.createAccordeon('altui-graph-accordion',panels,refreshbutton);	
 			$(domparent).append(html);
+
+			// ACE
+			var editor = ace.edit( "altui-luascene" );
+			editor.setTheme( "ace/theme/"+ (MyLocalStorage.getSettings("EditorTheme") || "monokai") );
+			editor.getSession().setMode( "ace/mode/lua" );
+			editor.setFontSize( MyLocalStorage.getSettings("EditorFontSize") );
+					
 			_displayWatchGraph(0,model);
 			$('.panel').on('shown.bs.collapse', function (e) {
 				e.stopPropagation();
@@ -10841,6 +11096,42 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 	},
 	
 	pageOptions: function() {
+		function _displayOption(id,check) {
+			var html="";
+			var init =  (MyLocalStorage.getSettings(check.id)!=null) ? MyLocalStorage.getSettings(check.id) : check._default;
+			switch( check.type ) {
+				case 'select':
+					html +="<label title='"+_T(check.help)+"' class='' for='altui-"+check.id+"'>"+_T(check.label)+"</label> : ";
+					html +="<select id='altui-"+check.id+"' title='"+check.id+"'>";
+					$.each(check.choices.split("|"),function(id,unit){
+						html += "<option value='{0}' {1}>{0}</option>".format( unit , (unit==init) ? 'selected' : '' );	
+					})
+					html +="</select>";
+					$(".altui-mainpanel").on("change","#altui-"+check.id,function(){ 
+						_saveOption(check.id, $("#altui-"+check.id).val());
+					});
+					break;
+				case 'checkbox':
+					html +="<label title='"+_T(check.help)+"' class='checkbox-inline'>";
+					html +=("  <input type='checkbox' id='altui-"+check.id+"' " + ( (init==true) ? 'checked' : '') +" value='"+init+"' title='"+check.id+"'>"+_T(check.label));
+					html +="</label>";
+					$(".altui-mainpanel").on("click","#altui-"+check.id,function(){ 
+						_saveOption(check.id,$("#altui-"+check.id).is(':checked'));
+					});
+					break;
+				case 'number':
+					html +="<label title='"+_T(check.help)+"' class='' for='altui-"+check.id+"'>"+_T(check.label)+"</label>:";
+					html +=("<input type='number' min='"+(check.min||0) +"' max='"+(check.max||999) +"' id='altui-"+check.id+"' " + ( (init==true) ? 'checked' : '') +" value='"+init+"' title='"+check.id+"'>");
+					$(".altui-mainpanel").on("focusout","#altui-"+check.id,function(){ 
+					$("#altui-"+check.id).is(':checked')
+						_saveOption(check.id,parseInt($("#altui-"+check.id).val()));
+					});
+					break;
+			}
+			var helpbutton = xsbuttonTemplate.format( id, 'altui-help-button',  glyphTemplate.format("question-sign","",""), _T(check.id+":"+check.help));
+			html+=helpbutton;
+			return html;
+		};
 		function _saveOption(name,value) {
 			MyLocalStorage.setSettings(name, value);
 			
@@ -10851,11 +11142,6 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 			$.each(altui_settings,function(key,val) {
 				if ( (val!=null) && (isObject(val)==false)) {
 					tbl[key]=btoa(val.toString())
-					// if (val==false)
-						// val=0;
-					// if (val==true)
-						// val=1;
-					// tbl.push("{0}={1}".format(key,val));
 				}
 			});
 			MultiBox.setStatus( altuidevice, "urn:upnp-org:serviceId:altui1", "ServerOptions", JSON.stringify(tbl) );
@@ -10876,70 +11162,62 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		
 		var html = "";
 		
-		html += "<div class='col-xs-12'>";
-		html +="<div class='panel panel-default'>";
+		html +="<div class='col-xs-12'>";
+		html +=" <div class='panel panel-default'>";
 		html +="  <div class='panel-heading'>"+_T("Options")+"</div>";
 		html +="  <div class='panel-body'>";
-		html += "<div class='row'>";
+		html += "  <div class='row'>";
 			$.each(_checkOptions, function(id,check) {
-				var init =  (MyLocalStorage.getSettings(check.id)!=null) ? MyLocalStorage.getSettings(check.id) : check._default;
 				html += "<div class='col-sm-6'>";
-					var helpbutton = xsbuttonTemplate.format( id, 'altui-help-button',  glyphTemplate.format("question-sign","",""), _T(check.help));
-					switch( check.type ) {
-						case 'select':
-							html +="<label title='"+_T(check.help)+"' class='' for='altui-"+check.id+"'>"+_T(check.label)+"</label> : ";
-							html +="<select id='altui-"+check.id+"' title='"+check.id+"'>";
-							$.each(check.choices.split("|"),function(id,unit){
-								html += "<option value='{0}' {1}>{0}</option>".format( unit , (unit==init) ? 'selected' : '' );	
-							})
-							html +="</select>";
-							$(".altui-mainpanel").on("change","#altui-"+check.id,function(){ 
-								_saveOption(check.id, $("#altui-"+check.id).val());
-							});
-							break;
-						case 'checkbox':
-							html +="<label title='"+_T(check.help)+"' class='checkbox-inline'>";
-							html +=("  <input type='checkbox' id='altui-"+check.id+"' " + ( (init==true) ? 'checked' : '') +" value='"+init+"' title='"+check.id+"'>"+_T(check.label));
-							html +="</label>";
-							$(".altui-mainpanel").on("click","#altui-"+check.id,function(){ 
-								_saveOption(check.id,$("#altui-"+check.id).is(':checked'));
-							});
-							break;
-						case 'number':
-							html +="<label title='"+_T(check.help)+"' class='' for='altui-"+check.id+"'>"+_T(check.label)+"</label>:";
-							html +=("<input type='number' min='"+(check.min||0) +"' max='"+(check.max||999) +"' id='altui-"+check.id+"' " + ( (init==true) ? 'checked' : '') +" value='"+init+"' title='"+check.id+"'>");
-							$(".altui-mainpanel").on("focusout","#altui-"+check.id,function(){ 
-							$("#altui-"+check.id).is(':checked')
-								_saveOption(check.id,parseInt($("#altui-"+check.id).val()));
-							});
-							break;
-					}
-				html+=helpbutton;
+				html += _displayOption(id,check);
 				html += "</div>";
 			});		
+		html +="   </div>";
 		html +="  </div>";
-		html +="  </div>";
+		html +=" </div>";
 		html +="</div>";
-		html +="</div>";
-		
+
+		//http://api.github.com/repos/ajaxorg/ace/contents/lib/ace/theme		
 		html += "<div class='col-xs-12'>";
-		html +="<div class='panel panel-default'>";
-		html +="  <div class='panel-heading'>"+_T("Cache Control")+"</div>";
-		html +="  <div class='panel-body'>";
-			html +="<div class='btn-group' role='group' aria-label='Icon DB'>";
-			html += "<button class='btn btn-default altui-save-IconDB' type='submit'>"+saveGlyph+" Save Icon DB</button>";
-			html += "<button class='btn btn-default altui-clear-IconDB' type='submit'>"+okGlyph+" Clear Icon DB</button>";
-			html += "</div>";
-			html += "<div class='btn-group' role='group' aria-label='File DB'>";
-			html += "<button class='btn btn-default altui-save-FileDB' type='submit'>"+saveGlyph+" Save File DB</button>";
-			html += "<button class='btn btn-default altui-clear-FileDB' type='submit'>"+okGlyph2+" Clear File DB</button>";
-			html += "</div>";
-			html += "<div class='btn-group' role='group' aria-label='User Data DB'>";
-			html += "<button class='btn btn-default altui-save-userdata' type='submit'>"+saveGlyph+"Save UserData</button>";
-			html += "<button class='btn btn-default altui-clear-userdata' type='submit'>"+okGlyph3+" Clear UserData</button>";
-			html += "</div>";
-		html += "</div>";
-		html +="  </div>";
+			html +="<div class='panel panel-default'>";
+				html +="  <div class='panel-heading'>"+_T("Editor Control")+"</div>";
+				html +="  <div class='panel-body'>";
+					html += "<div class='row'>";
+						html += "<div class='col-sm-4'>";
+							html +="<label title='"+_T("Editor Theme")+"' class='' for='altui-ace-theme'>"+_T("Editor Theme")+"</label> :"
+							html +="<select class='form-control' id='altui-ace-theme' title='"+_T("Editor Theme")+"'>";
+							html +="</select>";
+							$.each(_editorOptions, function(id,check) {
+								html += _displayOption(id,check);
+							});		
+						html += "</div>";
+						html += "<div class='col-sm-8'>";
+							html += "<div id='altui-editor-sample'>--- Comment sample\nlocal var = 1234\nlocal var2 = { \"abc\", tonumber(4), \"def\", 565 }\nfunction test(a)\n\tlocal i = \"Hello World of ALTUI\"\n\treturn i\nend</div>";
+						html += "</div>";
+					html += "</div>";
+					// <button id='9' type='button' class='altui-help-button btn btn-default btn-xs' aria-label='tbd' title='Unit for temperature'><span class='glyphicon glyphicon-question-sign ' aria-hidden='true' data-toggle='tooltip' data-placement='bottom' title=''></span></button>
+				html += "</div>";
+			html +="</div>";
+		html +="</div>";
+
+		html += "<div class='col-xs-12'>";
+			html +="<div class='panel panel-default'>";
+			html +="  <div class='panel-heading'>"+_T("Cache Control")+"</div>";
+				html +="  <div class='panel-body'>";
+					html +="<div class='btn-group' role='group' aria-label='Icon DB'>";
+						html += "<button class='btn btn-default altui-save-IconDB' type='submit'>"+saveGlyph+" Save Icon DB</button>";
+						html += "<button class='btn btn-default altui-clear-IconDB' type='submit'>"+okGlyph+" Clear Icon DB</button>";
+					html += "</div>";
+					html += "<div class='btn-group' role='group' aria-label='File DB'>";
+						html += "<button class='btn btn-default altui-save-FileDB' type='submit'>"+saveGlyph+" Save File DB</button>";
+						html += "<button class='btn btn-default altui-clear-FileDB' type='submit'>"+okGlyph2+" Clear File DB</button>";
+					html += "</div>";
+					html += "<div class='btn-group' role='group' aria-label='User Data DB'>";
+						html += "<button class='btn btn-default altui-save-userdata' type='submit'>"+saveGlyph+"Save UserData</button>";
+						html += "<button class='btn btn-default altui-clear-userdata' type='submit'>"+okGlyph3+" Clear UserData</button>";
+					html += "</div>";
+				html += "</div>";
+			html +="</div>";
 		html +="</div>";
 		
 		html += "<div class='col-xs-12'>";
@@ -10956,10 +11234,33 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 		html +="</div>";
 
 		$(".altui-mainpanel").append(html);
+		// ACE
+		var editor = ace.edit( "altui-editor-sample" );
+		editor.getSession().setMode( "ace/mode/lua" );
+		var init =  MyLocalStorage.getSettings("EditorTheme") || "monokai";
+		editor.setTheme( "ace/theme/"+init );
+		editor.setFontSize( MyLocalStorage.getSettings("EditorFontSize") );
+		
+		// NOTE : does not work, as we have to logged on to github for this api to work
+		// $.getJSON("http://api.github.com/repos/ajaxorg/ace/contents/lib/ace/theme", function(themes){
+		var themes=["ambiance.css", "chaos.css", "chrome.css", "clouds.css", "clouds_midnight.css", "cobalt.css", "crimson_editor.css", "dawn.css", "dreamweaver.css", "eclipse.css", "github.css", "gruvbox.css", "idle_fingers.css", "iplastic.css", "katzenmilch.css", "kr_theme.css", "kuroir.css", "merbivore.css", "merbivore_soft.css", "mono_industrial.css", "monokai.css", "pastel_on_dark.css", "solarized_dark.css", "solarized_light.css", "sqlserver.css", "terminal.css", "textmate.css", "tomorrow.css", "tomorrow_night.css", "tomorrow_night_blue.css", "tomorrow_night_bright.css", "tomorrow_night_eighties.css", "twilight.css", "vibrant_ink.css", "xcode.css"];			var init =  MyLocalStorage.getSettings("EditorTheme") || "monokai";
+		var html = "";
+		$.each(themes, function(idx,theme) {
+			html += "<option value='{0}'>{0}</option>".format(theme.slice(0, -4));
+		})
+		$("#altui-ace-theme").html( html )
+		.val(init)
+		.change( function() {
+			editor.setTheme( "ace/theme/"+$(this).val() );
+			_saveOption("EditorTheme",$(this).val())
+		});
+		$("#altui-EditorFontSize").change( function() {
+			editor.setFontSize( parseInt($(this).val()) );
+			_saveOption("EditorFontSize",parseInt($(this).val()))
+		})
 		$(".altui-help-button").click( function() {
-			var id = $(this).prop('id');
-			var check =  _checkOptions[parseInt(id)];
-			DialogManager.infoDialog(check.id,_T(check.help));
+			var help = $(this).attr("title").split(':'); 
+			DialogManager.infoDialog(help[0],_T(help[1]));
 		});
 		
 		$(".altui-save-IconDB").click( function() {
@@ -11046,6 +11347,7 @@ http://192.168.1.16/port_3480/data_request?id=lu_reload&rand=0.7390809273347259&
 				.on ("click", "#menu_scene", UIManager.pageScenes )
 				.on ("click", "#altui-scene-triggers", UIManager.pageTriggers )
 				.on ("click", "#menu_plugins", UIManager.pagePlugins )
+				.on ("click", "#menu_workflow", UIManager.pageWorkflow )
 				.on ("click", "#altui-pages-see", UIManager.pageUsePages )
 				.on ("click", "#altui-pages-edit", UIManager.pageEditPages )
 				.on( "click", "#altui-reload", UIManager.reloadEngine )
@@ -11260,6 +11562,7 @@ $(document).ready(function() {
 		body+="			<ul class='dropdown-menu' role='menu'>";
 		body+="				<li><a id='menu_room' href='#'  >"+_T("Rooms")+"</a></li>";
 		body+="				<li><a id='menu_plugins' href='#'  >"+_T("Plugins")+"</a></li>";
+		body+="				<li><a id='menu_workflow' href='#'  >"+_T("Workflows")+"</a></li>";
 		body+="			<li class='divider'></li>";
 		body+="				<li class='dropdown-header'>Tables</li>";
 		body+="				<li><a id='altui-tbl-watches' href='#' >"+_T("Watches")+"</a></li>";
