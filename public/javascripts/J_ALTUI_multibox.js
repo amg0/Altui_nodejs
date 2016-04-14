@@ -12,6 +12,7 @@
 
 
 var MultiBox = ( function( window, undefined ) {
+	var _recorder = null;
 	var _devicetypesDB = {};
 	_devicetypesDB[0] = {};
 	var _controllers = [
@@ -26,6 +27,12 @@ var MultiBox = ( function( window, undefined ) {
 	function _controllerOf(altuiid) {
 		var elems = altuiid.split("-");
 		return { controller:parseInt(elems[0]) , id:elems[1] };
+	};
+	function _isAltuiid(devid) {
+		if (typeof (devid) == "number")
+			return false;
+		var elems = devid.split("-");
+		return (elems.length>1);
 	};
 	function _makeAltuiid(ctrlid, devid) {
 		return "{0}-{1}".format(ctrlid,devid);
@@ -389,6 +396,22 @@ var MultiBox = ( function( window, undefined ) {
 		var elems = device.altuiid.split("-");
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getDeviceActions(device,cbfunc);
 	};
+	function _getDeviceService(device,ServiceId,cbfunc) {
+		var dfd = $.Deferred();
+		MultiBox.getDeviceActions(device,function( services ) {
+			var found = null;
+			$.each(services, function(idx,service) {
+				if (service.ServiceId == ServiceId) {
+					found = service;
+					return false;
+				}
+			})
+			if ($.isFunction(cbfunc))
+				(cbfunc)(found);
+			dfd.resolve( { device:device, service:found } );
+		})
+		return dfd.promise();
+	};
 	function _getDeviceEvents(device) {
 		if (device==null) return [];
 		var elems = device.altuiid.split("-");
@@ -442,6 +465,10 @@ var MultiBox = ( function( window, undefined ) {
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getStatus( elems[1], service, variable );
 	};
 	function _setStatus( device, service, variable, value, dynamic ) {
+		if (_recorder!=null ) {
+			_recorder.record( {type:'variable_set', device:device.altuiid, service:service, value:value } );
+			return;
+		}
 		var elems = device.altuiid.split("-");
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.setStatus( elems[1], service, variable, value, dynamic );
 	};
@@ -450,10 +477,18 @@ var MultiBox = ( function( window, undefined ) {
 		return (_controllers[controllerid]==undefined)  ? null : _controllers[controllerid].controller.getJobStatus( jobid, cbfunc );
 	};
 	function _runAction(device, service, action, params,cbfunc) {
+		if (_recorder!=null ) {
+			_recorder.record( {type:'action', device:device.altuiid, service:service, action:action, params:params } );
+			return;
+		}
 		var elems = device.altuiid.split("-");
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.runAction( elems[1], service, action, params, cbfunc )
 	};
 	function _runActionByAltuiID(altuiid, service, action, params,cbfunc) {
+		if (_recorder!=null ) {
+			_recorder.record( {type:'action', device:altuiid, service:service, action:action, params:params } );
+			return;
+		}
 		var elems = altuiid.split("-");
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.runAction(elems[1], service, action, params,cbfunc);
 		// return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPAction(elems[1], service, action, params,cbfunc);
@@ -465,6 +500,14 @@ var MultiBox = ( function( window, undefined ) {
 	function _isDeviceZwave(device) {
 		var elems = device.altuiid.split("-");
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.isDeviceZwave(device);
+	};
+	function _isDeviceZigbee(device) {
+		var elems = device.altuiid.split("-");
+		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.isDeviceZigbee(device);
+	};
+	function _isDeviceBT(device) {
+		var elems = device.altuiid.split("-");
+		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.isDeviceBT(device);
 	};
 	function _updateNeighbors(device) {
 		var elems = device.altuiid.split("-");
@@ -583,12 +626,29 @@ var MultiBox = ( function( window, undefined ) {
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.renameScene(elems[1],newname);
 	};
 	function _runScene(scene) {
+		if (_recorder!=null ) {
+			_recorder.record( {type:'scene', altuiid:scene.altuiid } );
+			return;
+		}
 		var elems = scene.altuiid.split("-");
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.runScene(elems[1]);
 	};
 	function _runSceneByAltuiID(altuiid) {
+		if (_recorder!=null ) {
+			_recorder.record( {type:'scene', altuiid:altuiid } );
+			return;
+		}
 		var elems = altuiid.split("-");
 		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.runScene(elems[1]);
+	};
+	function _getWorkflowStatus(cbfunc) {
+		return _controllers[0].controller.getWorkflowStatus(cbfunc);
+	};
+	function _getWorkflowHistory(altuiid, cbfunc) {
+		return _controllers[0].controller.getWorkflowHistory(altuiid, cbfunc);
+	};
+	function _isWorkflowEnabled() {
+		return _controllers[0].controller.isWorkflowEnabled();
 	};
 	function _runLua(controllerid, code, cbfunc) {
 		var id = controllerid || 0;
@@ -616,8 +676,8 @@ var MultiBox = ( function( window, undefined ) {
 		var id = controllerid || 0;
 		return _controllers[id].controller.updateChangeCache( target );
 	};
-	function _saveData( name, data , cbfunc) {
-		return _controllers[0].controller.saveData( name, data , cbfunc );
+	function _saveData( key, name, data , cbfunc) {
+		return _controllers[0].controller.saveData( key, name, data , cbfunc );
 	};	
 	function _getPlugins( func , endfunc ) {
 		var arr=[];
@@ -628,17 +688,17 @@ var MultiBox = ( function( window, undefined ) {
 			(endfunc)( arr );		
 		return arr;
 	};
-	function _deletePlugin( altuiid, cbfunc) {
+	function _deletePlugin( altuiid, pluginid, cbfunc) {
 		var elems = altuiid.split("-");
-		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPDeletePlugin(elems[1],cbfunc);
+		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPDeletePlugin(pluginid,cbfunc);
 	};
-	function _updatePlugin( altuiid, cbfunc) {
+	function _updatePlugin( altuiid, pluginid, cbfunc) {
 		var elems = altuiid.split("-");
-		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPUpdatePlugin(elems[1],cbfunc);
+		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPUpdatePlugin(pluginid,cbfunc);
 	};
-	function _updatePluginVersion( altuiid, ver, cbfunc) {
+	function _updatePluginVersion( altuiid, pluginid, ver, cbfunc) {
 		var elems = altuiid.split("-");
-		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPUpdatePluginVersion(elems[1],ver,cbfunc);
+		return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().UPnPUpdatePluginVersion(pluginid,ver,cbfunc);
 	};
 	function _getFileUrl(controllerid, filename ) {
 		var id = controllerid || 0;
@@ -648,9 +708,9 @@ var MultiBox = ( function( window, undefined ) {
 		var id = controllerid || 0;
 		return _controllers[id].controller.getFileContent( filename, cbfunc);
 	};
-	function _osCommand(controllerid, cmd,cbfunc) {
+	function _osCommand(controllerid, cmd, bSilent, cbfunc) {
 		var id = controllerid || 0;
-		return _controllers[id].controller.osCommand(cmd,cbfunc);
+		return _controllers[id].controller.osCommand(cmd,bSilent,cbfunc);
 	};
 	function _getPower(cbfunc) {
 		var lines=[];
@@ -696,10 +756,34 @@ var MultiBox = ( function( window, undefined ) {
 	function _triggerAltUIUpgrade(urlsuffix,newrev) {
 		return _controllers[0].controller.triggerAltUIUpgrade(urlsuffix,newrev);
 	};
-	// function _buildUPnPGetFileUrl(altuiid,name) {
-		// var elems = altuiid.split("-");
-		// return (_controllers[elems[0]]==undefined)  ? null : _controllers[elems[0]].controller.getUPnPHelper().buildUPnPGetFileUrl(name);
-	// };
+
+	function Recorder( callback ) {
+		this._log = [ ];
+		this._callback = callback;
+		this.getLog = function() {
+			return this._log;
+		}
+		this.record = function( action ) {
+			this._log.push(action);
+			if ($.isFunction(this._callback))
+				(this._callback)(action)
+		}
+	};
+	
+	function _isRecording() {
+		return _recorder != null;
+	};
+	function _startRecorder( callback ) {
+		if (_recorder == null )
+			_recorder  = new Recorder( callback );
+	};
+	function _stopRecorder() {
+		if (_recorder == null )
+			return;
+		var log=_recorder.getLog();
+		_recorder = null;
+		return log;
+	};
 	
   return {
 	//---------------------------------------------------------
@@ -717,6 +801,7 @@ var MultiBox = ( function( window, undefined ) {
 	// controller selection
 	controllerOf : _controllerOf,	//(deviceid)
 	makeAltuiid	 : _makeAltuiid,
+	isAltuiid    : _isAltuiid,
 	getControllers : _getControllers,	
 	
 	// Device Type DB
@@ -764,6 +849,7 @@ var MultiBox = ( function( window, undefined ) {
 	getDeviceDependants		: _getDeviceDependants,		// (device)
 	getDeviceBatteryLevel 	: _getDeviceBatteryLevel,	// ( device )
 	getDeviceVariableHistory : _getDeviceVariableHistory,//( device, varidx, cbfunc) 
+	getDeviceService		: _getDeviceService,		// device, serviceId
 	addWatch				: _addWatch,				// (  service, variable, deviceid, sceneid, expression, xml, provider, params)
 	delWatch				: _delWatch,				// (  service, variable, deviceid, sceneid, expression, xml, provider, params )getWatches(whichwatches)
 	getWatches				: _getWatches,				// (whichwatches,filterfunc)
@@ -778,6 +864,8 @@ var MultiBox = ( function( window, undefined ) {
 	runAction				: _runAction,				// (device, service, action, params,cbfunc);
 	runActionByAltuiID		: _runActionByAltuiID,		// (altuiid, service, action, params,cbfunc) 
 	isDeviceZwave			: _isDeviceZwave,			// (device)
+	isDeviceZigbee			: _isDeviceZigbee,			// (device)
+	isDeviceBT				: _isDeviceBT,				// (device)
 	updateNeighbors			: _updateNeighbors,			// (device)
 	
 	//Alias
@@ -809,6 +897,11 @@ var MultiBox = ( function( window, undefined ) {
 	runScene			: _runScene,		//(id)
 	runSceneByAltuiID	: _runSceneByAltuiID,
 	
+	// workflows
+	getWorkflowStatus	: _getWorkflowStatus,
+	getWorkflowHistory	: _getWorkflowHistory,
+	isWorkflowEnabled 	: _isWorkflowEnabled,
+
 	// Plugins
 	getPlugins			: _getPlugins,			//( func , endfunc ) 
 	deletePlugin		: _deletePlugin,		//(id,function(result)
@@ -841,7 +934,11 @@ var MultiBox = ( function( window, undefined ) {
 	
 	// Upgrade
 	triggerAltUIUpgrade : _triggerAltUIUpgrade,	// (suffix,newrev)  : newrev number in TRAC
-
+	
+	// Recorder
+	isRecording 	: _isRecording,
+	startRecorder	: _startRecorder,
+	stopRecorder	: _stopRecorder,
 	// DEBUG
 	
   };

@@ -62,6 +62,7 @@ function Altui_ExecuteFunctionByName(functionName, context , device, extraparam)
 	
 
 var Localization = ( function (undefined) {
+	var _brandingCallback = null;
 	var _unknown_terms = {};
 	var _terms = {};
 
@@ -74,8 +75,9 @@ var Localization = ( function (undefined) {
 	};
 
 	var _initTerms = function(terms) {
-		_terms = $.extend({},terms);
+		_terms = $.extend(_terms,terms);
 		_unknown_terms = {};
+		Localization.setTitle("Vera ALTUI")
 	};
 	
 	var _dumpTerms = function() {
@@ -89,11 +91,16 @@ var Localization = ( function (undefined) {
 			UIManager.pageHome();
 		});
 	};
-	
+	function _setTitle(title) {
+		$("title").text(title);
+	};
 	return {
 		_T : __T,
 		init : _initTerms,
-		dump : _dumpTerms
+		dump : _dumpTerms,
+		setTitle : _setTitle,											// str
+		setBrandingCallback : function(cb) { _brandingCallback =  $.isFunction(cb) ? cb : null  },	// func
+		doBranding : function() { if ($.isFunction(_brandingCallback)) { (_brandingCallback)() } } 
 	}
 })();
 
@@ -197,7 +204,8 @@ var SpeechManager = (function() {
 		function _spochen(stringToReplace) {
 			stringToReplace = stringToReplace.toLowerCase();
 			stringToReplace = stringToReplace.replace(/[_-]/g, ' ');
-			stringToReplace = stringToReplace.replace(/[^\w\s]/gi, '');
+			stringToReplace = stringToReplace.replace(/[-[\]{}()*+?.,\\/^$|#]/g, '')
+			// stringToReplace = stringToReplace.replace(/[^\w\s]/gi, '');
 			return stringToReplace;
 		}
 		
@@ -210,6 +218,8 @@ var SpeechManager = (function() {
 				var namelist = name2AltuiID[ rule.t ];
 				$.each(namelist, function (idx,possible) {
 					re = new RegExp(rulestr.replace("%name%",possible.name), 'i');
+					// console.log(re);
+					// console.log(possible);
 					if ((m = re.exec(command)) !== null) {
 						if (m.index === re.lastIndex) {
 							re.lastIndex++;
@@ -289,6 +299,881 @@ var SpeechManager = (function() {
 			}
 		}
 	}
+})();
+
+var LuaEditor = (function () {
+	//0: title // 1: Lua code to edit
+	var luaEditorModalTemplate = "<div id='luaEditorModal' class='modal fade'>";
+	luaEditorModalTemplate += "  <div class='modal-dialog modal-lg'>";
+	luaEditorModalTemplate += "    <div class='modal-content'>";
+	luaEditorModalTemplate += "      <div class='modal-header'>";
+	luaEditorModalTemplate += "        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>";
+	luaEditorModalTemplate += "        <h4 class='modal-title'>{0}</h4>";
+	luaEditorModalTemplate += "      </div>";
+	luaEditorModalTemplate += "      <div class='modal-body'>";
+	luaEditorModalTemplate += "      	<div class='form-group'>";
+	luaEditorModalTemplate += "      		<label for='altui-editor-text'>{0}</label>";
+	// luaEditorModalTemplate += "      		<textarea id='altui-luacode-text' rows='10' class='form-control' placeholder='enter code here'>{0}</textarea>";
+	luaEditorModalTemplate += "      		<div id='altui-editor-text'>{1}</div>";
+	luaEditorModalTemplate += "      	</div>";
+	luaEditorModalTemplate += "      </div>";
+	luaEditorModalTemplate += "      <div class='modal-footer'>";
+	// luaEditorModalTemplate += "        <button type='button' class='btn btn-default' data-dismiss='modal'>"+_T("Close")+"</button>";
+	// luaEditorModalTemplate += "        <button type='button' class='btn btn-default altui-luacode-test' >"+_T("Test Code")+"</button>";
+	// luaEditorModalTemplate += "        <button type='button' class='btn btn-primary altui-luacode-save' data-dismiss='modal'>"+_T("Save Changes")+"</button>";
+	luaEditorModalTemplate += "      </div>";
+	luaEditorModalTemplate += "    </div><!-- /.modal-content -->";
+	luaEditorModalTemplate += "  </div><!-- /.modal-dialog -->";
+	luaEditorModalTemplate += "</div><!-- /.modal -->";
+
+	// $(".altui-mainpanel").append(luaEditorModalTemplate);
+	
+	return {
+		openDialog: function(luacode, onSaveCB, language, options ) {
+			// Set Proper defaults
+			if (options==null) {
+				options = { buttons:[ {label:_T("Test Code"), extraclass:'altui-luacode-test'} ]}
+			}
+			options = $.extend( true, { language: language || 'lua', title:_T("Lua Editor"), buttons:[] }, options);
+
+			var dialog =  DialogManager.registerDialog( 'luaEditorModal', luaEditorModalTemplate.format( options.title, luacode ) )
+			DialogManager.dlgAddDialogButton(dialog, false, _T("Close"), '', '',{ 'data-dismiss':'modal'} );
+			$.each(options.buttons, function(idx,btn) {
+				DialogManager.dlgAddDialogButton(dialog, btn.type=="submit", btn.label, btn.extraclass, btn.id, btn.extraattrs)
+			});
+			DialogManager.dlgAddDialogButton(dialog, true, _T("Save Changes"),'altui-luacode-save','',{ 'data-dismiss':'modal'});
+
+			// ACE
+			var editor = ace.edit( "altui-editor-text" );
+			editor.setTheme( "ace/theme/"+ (MyLocalStorage.getSettings("EditorTheme") || "monokai") );
+			var lang = 
+			editor.getSession().setMode( "ace/mode/"+options.language);
+			editor.setFontSize( MyLocalStorage.getSettings("EditorFontSize") );
+			// resize
+			dialog.modal()
+				.on('shown.bs.modal', function () {
+					var widthparent = $("div#altui-editor-text").closest(".form-group").innerWidth();
+					$("div#altui-editor-text").resizable({
+						// containment: "parent",
+						maxWidth:widthparent,
+						stop: function( event, ui ) {
+							editor.resize();
+						}
+					});
+					if (options && $.isFunction(options.onDisplay)) {
+						(options.onDisplay)(editor);
+					}
+				})
+				.on("click touchend",".altui-luacode-test",function(){ 
+					var lua = editor.getValue();
+					MultiBox.runLua(0,lua, function(result) {
+						alert(JSON.stringify(result));
+					});
+				})
+				.on("click touchend",".altui-luacode-save",function(){ 
+					// Save Callback
+					var code = editor.getValue();
+					onSaveCB(code);
+				});
+
+		}
+	};
+})();
+
+var DialogManager = ( function() {
+	var helpGlyph = "<span class='glyphicon glyphicon-question-sign ' aria-hidden='true'></span>"
+	// this method assumes htmlDialog id property is equal to 'name'
+	function _registerDialog( name, htmlDialog ) {
+		var dialog = $("div#dialogs div#"+name);
+		if (dialog.length ==0) 
+			$("div#dialogs").append(htmlDialog);
+		else
+			$(dialog).replaceWith(htmlDialog);
+		dialog = $("div#dialogs div#"+name);
+		// remove all callbacks for now
+		$(dialog).off();			
+		$("div#dialogs").off();
+		return  dialog;
+	};
+	function _clearDialog( name ) {
+		$("div#dialogs div#"+name).remove();
+	}
+	function _getActionParameterHtml( id, device, actionname, actiondescriptor, cbfunc )
+	{
+		if ($.isFunction( cbfunc )) {
+			var Html="";
+			var bFound = false;
+			MultiBox.getDeviceActions(device,function( services ) {
+				$.each(services, function(idx,service) {
+					$.each(service.Actions, function(idx2,action) {
+						if (action.name == actionname) {
+							bFound = true;
+							$.each(action.input, function(idx,param){
+								var curvalue = actiondescriptor.params[param] || '';
+								Html += ("	<label for='"+id+"-"+param+"'>"+param+"</label>");
+								Html += ("	<input id='"+id+"-"+param+"' class='form-control' type='text' value='"+curvalue+"' placeholder='enter parameter value'></input>");
+								// Html += ("	<input id='"+id+"-"+param+"' class='form-control' type='text' required value='"+curvalue+"' placeholder='enter parameter value'></input>");
+							});
+						}
+						return !bFound;
+					});
+					return !bFound;
+				});
+				cbfunc("<div class='"+id+"'>"+Html+"</div>");
+			});
+		}
+	};
+	
+	function _getDeviceServiceVariableSelect(device, service, variable, filterByServiceID) {
+		// var device = MultiBox.getDeviceByID( deviceid );
+		var select = $("<select id='altui-select-variable' class='form-control'></select>");
+		if ((device!=null) && (device.altuiid!=NULL_DEVICE)) {
+			$.each(device.states.sort(_sortByVariableName), function(idx,state) {
+				if ((filterByServiceID==null) || (filterByServiceID==state.service)) {
+					select.append("<option value='{0}' {2}>{1}</option>".format(
+						state.id,
+						state.variable + " : ("+state.service+")",
+						(service==state.service) && (variable==state.variable)? 'selected' : ''));
+				}
+			});
+		}
+		return select.wrap( "<div></div>" ).parent().html();			
+	};
+
+	function _getDeviceActionSelect(id, device, actiondescriptor, filterByServiceID, cbfunc) {
+		MultiBox.getDeviceActions(device,function( services ) {
+			var select = $("<select required id='"+id+"' class='form-control'></select>");
+			select.append("<option value='0' {0}>Select ...</option>".format( actiondescriptor.action==''? 'selected' : ''));
+			$.each(services, function(idx,service) {
+				if ((filterByServiceID==null) || (filterByServiceID==service.ServiceId)) {
+					var group = $("<optgroup label='"+service.ServiceId+"'></optgroup>");
+					$.each(service.Actions, function(idx2,action) {
+						var selected = "";
+						if ((actiondescriptor.action==action.name) && (actiondescriptor.service==service.ServiceId))
+							selected = 'selected';
+
+						group.append("<option value='{0}' {2}>{1}</option>".format(
+							service.ServiceId+"."+action.name,
+							action.name,
+							selected));
+					});
+					select.append(group);
+				}
+			});
+
+			_getActionParameterHtml( id+"-parameters",device, actiondescriptor.action, actiondescriptor, function(parameters){
+				cbfunc( select.wrap( "<div></div>" ).parent().html() + parameters );
+			});
+		});
+	};
+		
+	function _createSpinningDialog(message,glyph) {
+				// 0: title, 1: body
+		var glyph2 = glyph || glyphTemplate.format( "refresh", _T("Refresh"), "text-warning glyphicon-spin big-glyph" );
+		
+		var defaultSpinDialogModalTemplate="";
+		defaultSpinDialogModalTemplate = "<div id='dialogModal' class='modal' data-backdrop='static' data-keyboard='false'>";
+		defaultSpinDialogModalTemplate += "  <div class='modal-dialog modal-sm'>";
+		defaultSpinDialogModalTemplate += "    <div class='modal-content'>";
+		defaultSpinDialogModalTemplate += "      <div class='modal-body'>";
+		defaultSpinDialogModalTemplate += "      <div class='row-fluid'>";
+		defaultSpinDialogModalTemplate += "      {0} {1}";
+		defaultSpinDialogModalTemplate += "      </div>";
+		defaultSpinDialogModalTemplate += "      </div>";
+		defaultSpinDialogModalTemplate += "    </div><!-- /.modal-content -->";
+		defaultSpinDialogModalTemplate += "  </div><!-- /.modal-dialog -->";
+		defaultSpinDialogModalTemplate += "</div><!-- /.modal -->";
+		return DialogManager.registerDialog('dialogModal',defaultSpinDialogModalTemplate.format( 
+			glyph2,
+			message || "")
+		);
+	};
+	function _genericDialog(message,title,buttons,cbfunc) {
+		var result = false;
+		var dialog = DialogManager.registerDialog('dialogModal',
+						defaultDialogModalTemplate.format( 'dialogModal',
+								title, 	// title
+								message,							// body
+								""));								// size
+		$.each(buttons,function(i,button) {
+			// [{isdefault:true, label:_T("Yes")}]
+			DialogManager.dlgAddDialogButton(dialog, button.isdefault, button.label);
+		});
+		// buttons
+		$('div#dialogs')		
+			.off('submit',"div#dialogModal form")
+			.on( 'submit',"div#dialogModal form", function() {
+				result = true;
+				dialog.modal('hide');
+			})
+			.off('hide.bs.modal',"div#dialogModal")
+			.on( 'hide.bs.modal',"div#dialogModal", function() {
+				if ($.isFunction(cbfunc))
+					(cbfunc)(result);
+			});
+
+		dialog.modal({                    // wire up the actual modal functionality and show the dialog
+		  "backdrop"  : "static",
+		  "keyboard"  : true,
+		  "show"      : true                     // ensure the modal is shown immediately
+		});
+		return result;
+	}
+	function _confirmDialog(message,cbfunc) {
+		var warningpic = "<div class='altui-warningicon pull-left'>{0}</div>".format(questionGlyph);
+		return _genericDialog(message,warningpic+_T("Are you Sure ?"),[{isdefault:true, label:_T("Yes")}],cbfunc)
+	};
+	function _quickDialog(type,title,message,cbfunc) {
+		var glyph = glyphTemplate.format( type+"-sign", _T(type) , "text-"+type);
+		var header= "<div class='altui-{2}icon pull-left'>{0}</div> {1}".format(glyph,title,type);
+		return _genericDialog(message,header,[],cbfunc);
+	};
+	function _infoDialog(title,message,cbfunc) {
+		return _quickDialog("info",title,message,cbfunc);
+	};
+	function _warningDialog(title,message,cbfunc) {
+		return _quickDialog("warning",title,message,cbfunc);
+	};
+	function _triggerDialog( trigger, controller, cbfunc ) {
+		var dialog = DialogManager.createPropertyDialog(_T('Trigger'));
+		var device = MultiBox.getDeviceByID( controller ,trigger.device);
+		DialogManager.dlgAddLine( dialog , "TriggerName", _T("TriggerName"), trigger.name, "", {required:''} ); 
+		DialogManager.dlgAddDevices( dialog , '', device ? device.altuiid : NULL_DEVICE, 
+			function() {			// callback
+				DialogManager.dlgAddEvents( dialog, "Events", "altui-select-events",device ? device.altuiid : NULL_DEVICE , trigger.template, trigger.arguments );
+				$('div#dialogModal').modal();
+			},
+			function( device ) {	// filter
+				return (MultiBox.controllerOf(device.altuiid).controller == controller);
+			}
+		);
+		$('div#dialogs').on( 'submit',"div#dialogModal form",  function( event ) {	
+			trigger.name = $("#altui-widget-TriggerName").val();
+			trigger.enabled = 1;
+			trigger.device = parseInt(MultiBox.controllerOf( $("#altui-select-device").val() ).id) ;
+			trigger.template = $("#altui-select-events").val();
+			trigger.arguments = [];
+			$(".altui-arguments input").each( function(idx,elem)
+			{
+				var id = $(elem).prop('id').substring("altui-event-param".length);
+				trigger.arguments.push( {id:id, value: $(elem).val() } );
+			});
+			// on UI7 10, for motion sensor which have no argument list in their  eventlist definition
+			// it seems that passing at least {id:1} is mandatory 
+			if (trigger.arguments.length==0)
+				trigger.arguments.push( {id:1} );
+			
+			if ((trigger.device>0) && (trigger.template>0))
+			{
+				$('div#dialogModal').modal('hide');
+				$(".modal-backdrop").remove();	// hack as it is too fast
+				if ($.isFunction(cbfunc))
+					(cbfunc)(trigger);
+			}
+		});
+	}
+	
+	function _triggerUsersDialog(trigger,controller,cbfunc) {
+		var dialog = DialogManager.createPropertyDialog(_T('Notify Users'));
+		var users = MultiBox.getUsersSync(controller);
+		var selectedusers = (trigger.users || "").toString().split(",");
+		$.each(users, function(idx,user){
+			var inarray  = $.inArray(user.id.toString(),selectedusers);
+			DialogManager.dlgAddCheck(dialog,'user-'+user.id,(inarray!=-1),user.Name,'altui-notify-user');
+		});
+		$('div#dialogModal').modal();
+		$('div#dialogs')	
+			.off('submit',"div#dialogModal form")
+			.on( 'submit',"div#dialogModal form", function(event) {
+				var lines=[];
+				$(".altui-notify-user").each(function(idx,check) {
+					if ($(check).prop('checked')==true) {
+						var id = $(check).prop('id').substring("altui-widget-user-".length)
+						lines.push(id);
+					}
+				});
+				if (lines.length>0)
+					trigger.users = lines.join(",");
+				else
+					delete trigger.users;	// warning : in UI7 setting a empty string is not sufficient
+				$('div#dialogModal').modal('hide');
+				$(".modal-backdrop").remove();	// hack as it is too fast
+				if ($.isFunction(cbfunc))
+					(cbfunc)(event);
+			});
+	};
+	
+	function _createPropertyDialog(title)
+	{
+		var dialog =  DialogManager.registerDialog('dialogModal',
+						defaultDialogModalTemplate.format( 'dialogModal',
+								title, 			// title
+								"",				// body
+								"modal-lg"
+							));
+		DialogManager.dlgAddDialogButton(dialog, true, _T("Save Changes"));
+		$("div#dialogModal").off('click', '.altui-help-button')
+			.on('click', '.altui-help-button', function(e) {
+				e.stopPropagation();
+				e.preventDefault();
+				var text = $(this).data("text");
+				alert(text);
+				return false;
+			});
+		return dialog; 
+	};
+	
+	function _dlgAddDialogButton(dialog, bSubmit, label, extraclass, id, extraattrs) {
+		var html = "<button type='{0}' class='btn {2} {3}' {4} id='{5}'>{1}</button>".format( 
+			(bSubmit ? 'submit' : 'button'),
+			label,
+			'btn-'+(bSubmit ? 'primary' : 'default'),
+			(extraclass) ? extraclass : '',
+			(extraattrs) ? HTMLUtils.optionsToString(extraattrs) : '',
+			id || ''
+			)
+		$(dialog).find(".modal-footer").append(html);
+	};
+	
+	function _dlgAddCheck(dialog, name, value, label, extraclass)
+	{
+		var propertyline = "";
+		// propertyline += "<div class='checkbox'>";
+		propertyline +="<label class='checkbox-inline'>";
+		propertyline +=("  <input type='checkbox' class='"+(extraclass || '')+"' id='altui-widget-"+name+"' " + ( (value==true) ? 'checked' : '') +" value='"+value+"' title='check to invert status value'>"+(label ? label : name));
+		propertyline +="</label>";
+		// propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+
+	function _dlgAddDayOfWeek(dialog,name, label, value, _timerDOW)
+	{
+		//0:sunday
+		var selected_days = value.split(',');
+		var propertyline = "";
+		propertyline += "<div class='form-group' id='altui-widget-"+name+"'>";
+		propertyline += "	<label  title='"+name+"'>"+label+": </label>";
+		$.each(_timerDOW, function(idx,element) {
+			// propertyline += "<div class='checkbox'>";
+			propertyline +="<label class='checkbox-inline'>";
+			propertyline +=( "<input type='checkbox' class='altui-widget-TimerDayOfWeek' id='altui-widget-"+name+element.value+"' " + ( ($.inArray(element.value.toString(),selected_days)!=-1) ? 'checked' : '') +" value='"+element.value+"' />"+element.text);
+			propertyline +="</label>";
+		});
+		propertyline += " ";
+		propertyline += xsbuttonTemplate.format('altui-TimerDayOfWeek-setAll','',okGlyph,_T("All"));
+		propertyline += xsbuttonTemplate.format('altui-TimerDayOfWeek-clearAll','',removeGlyph,_T("None"));
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+		$("#altui-TimerDayOfWeek-setAll").click(function(){
+			$(".altui-widget-TimerDayOfWeek").each( function(i,e) {
+				var id = parseInt($(e).prop('id').substring( ("altui-widget-"+name).length ));
+				if (id<8)
+					$(e).prop('checked', true);
+			});
+		});
+		$("#altui-TimerDayOfWeek-clearAll").click(function(){
+			$(".altui-widget-TimerDayOfWeek").each( function(i,e) {
+				var id = parseInt($(e).prop('id').substring( ("altui-widget-"+name).length ));
+				if (id<8)
+					$(e).prop('checked', false);
+			});
+		});
+	};
+	
+	function _dlgAddColorPicker(dialog, name, label, help, value, options)
+	{
+		var optstr = HTMLUtils.optionsToString(options);
+		value = (value==undefined) ? '' : value ;
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title='"+(help || '')+"'>"+label+"</label>";
+		if (help)
+			propertyline += "	<button data-toggle='tooltip' data-placement='top' title='{0}' type='button' class='btn btn-default btn-xs altui-help-button' data-text='{0}'>{1}</button>".format(help||'' , helpGlyph);
+		propertyline += "<input id='altui-widget-"+name+"' name='{0}' value='{1}' {2}></input>"
+			.format(name,value,optstr);
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+		$("#altui-widget-{0}".format(name)).spectrum({
+			preferredFormat: 'hex',			
+			replacerClassName: 'altui-colorpicker-replacer',	
+		});
+	};
+
+	function _dlgAddBlockly(dialog, name, label, value, xml, help, options)
+	{
+		var optstr = HTMLUtils.optionsToString($.extend( {type:'text'},options));
+		xml = xml || "";
+		value = (value==undefined) ? '' : value ;
+		var placeholder = ((options !=undefined) && (options.placeholder==undefined)) ? "placeholder:'enter "+name+"'" : "";
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title='"+(help || '')+"'>"+label+"</label>";
+		if (help)
+			propertyline += "	<button data-toggle='tooltip' data-placement='top' title='{0}' type='button' class='btn btn-default btn-xs altui-help-button' data-text='{0}'>{1}</button>".format(help||'' , helpGlyph);
+		
+		propertyline += "<div class='input-group'>";
+			propertyline += "<input id='altui-widget-"+name+"' class='form-control' "+optstr+" value='"+value.escapeXml()+"' "+placeholder+" ></input>";
+			propertyline += "<span class='input-group-btn'>";
+				propertyline += buttonTemplate.format( "altui-edit-"+name, 'btn-default', "Blockly "+editGlyph,'default',_T('Edit Watch Expression'));
+			propertyline += "</span>";
+			propertyline += "<input type='hidden' id='altui-xml-"+name+"' class='form-control' value='"+xml.escapeXml()+"' ></input>";
+		propertyline += "</div>";
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+		
+		$("#altui-widget-LuaExpression").on("change",function() {
+			$("#altui-xml-LuaExpression").val( "" );
+		});
+	}
+	function _dlgAddHtml(dialog,html) 
+	{
+		$(dialog).find(".row-fluid").append(html);
+	}
+	function _dlgAddLine(dialog, name, label, value,help, options, col_css)
+	{
+		var col_css = col_css || ''; //|| 'col-xs-12';
+		var optstr = HTMLUtils.optionsToString($.extend( {type:'text'},options));
+		value = (value==undefined) ? '' : value.toString() ;
+		var placeholder = ((options !=undefined) && (options.placeholder==undefined)) ? "placeholder='enter "+name+"'" : "";
+		var propertyline = "";
+		propertyline += "<div class='form-group {0}'>".format(col_css);
+		propertyline += "	<label for='altui-widget-"+name+"' title='"+(help || '')+"'>"+label+"</label>";
+		if (help)
+			propertyline += "	<button data-toggle='tooltip' data-placement='top' title='{0}' type='button' class='btn btn-default btn-xs altui-help-button' data-text='{0}'>{1}</button>".format(help||'' , helpGlyph);
+		propertyline += "	<input id='altui-widget-"+name+"' class='form-control' "+optstr+" value='"+value.escapeXml()+"' "+placeholder+" ></input>";
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+	function _dlgAddUrl(dialog, name, label, value,help, options) {
+		var optstr = HTMLUtils.optionsToString($.extend( {type:'text'},options));
+		value = (value==undefined) ? '' : value ;
+		var placeholder = ((options !=undefined) && (options.placeholder==undefined)) ? "placeholder='enter "+name+"'" : "";
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title='"+(help || '')+"'>"+label+"</label>";
+		if (help)
+			propertyline += "	<button data-toggle='tooltip' data-placement='top' title='{0}' type='button' class='btn btn-default btn-xs altui-help-button' data-text='{0}'>{1}</button>".format(help||'' , helpGlyph);
+		// propertyline += "	<input type='url' id='altui-widget-"+name+"' class='form-control' "+optstr+" value='"+value+"' "+placeholder+" ></input>";
+		propertyline += "<div class='input-group'>";
+		  propertyline += "<input type='text' id='altui-widget-"+name+"' class='form-control' "+optstr+" value='"+value+"' "+placeholder+" placeholder='Url...'>";
+		  propertyline += "<span class='input-group-btn'>";
+			propertyline += "<button data-forinput='altui-widget-"+name+"' class='btn btn-default altui-url-test' type='button'>"+_T("Test")+"!</button>";
+		  propertyline += "</span>";
+		propertyline += "</div>"; // <!-- /input-group -->
+	propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+	function _dlgAddSelect(dialog, name, label, value, lines, htmloptions)
+	{
+		var optstr = HTMLUtils.optionsToString(htmloptions);
+		value = (value==undefined) ? '' : value ;
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title='"+name+"'>"+label+"</label>";
+		propertyline += "	<select id='altui-widget-"+name+"' class='form-control' "+optstr+">";
+		$.each(lines, function(idx,line){
+			propertyline += "<option value='{0}' {2}>{1}</option>".format(line.value, line.text, (value==line.value)?'selected':'');
+		})
+		propertyline += "</select>";
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+	};	
+
+	function _dlgAddTimeInterval(dialog, name, label, value, lines)
+	{
+		var unit = (value||' ').slice(-1);
+		var value = parseInt(value);
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title=''>"+label+"</label>";
+		propertyline += "	<div class='form-inline'>";
+		propertyline += "	<input id='altui-widget-"+name+"' class='form-control' type='number' value='"+value+"' placeholder='enter "+name+"' ></input>";
+		propertyline += "	<select id='altui-widget-"+name+"Unit' class='form-control' >";
+		$.each(lines, function(idx,line){
+			propertyline += "<option value='{0}' {2}>{1}</option>".format(line.value, line.text, (unit==line.value)?'selected':'');
+		})
+		propertyline += "</select>";
+		propertyline += "</div>";	// form inline
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+	
+	function _dlgAddTime(dialog, name, value, _timerRelative)
+	{
+		function _decomposeTimer( value ) {
+			var iKind = 0;
+			var newvalue = '';
+			if (value.substring(0,8)=="00:00:00") {
+				newvalue = "00:00:00";
+				if (value.slice(-1)=="R") {
+					iKind=1;
+				}
+				else if (value.slice(-1)=="T")
+					iKind=4;
+				else
+					iKind=0;
+			} else {
+				if (value.substring(0,1)=="-") {
+					if (value.slice(-1)=="R") {
+						iKind=2;
+						newvalue = value.substr(1,value.length-2);
+					}
+					else if (value.slice(-1)=="T") {
+						iKind=5;
+						newvalue = value.substr(1,value.length-2);
+					}
+					else {
+						iKind=0;
+						newvalue = value.substr(1,value.length-1);
+					}
+				}
+				else {
+					if (value.slice(-1)=="R") {
+						iKind=3;
+						newvalue = value.substr(0,value.length-1);
+					}
+					else if (value.slice(-1)=="T") {
+						iKind=6;
+						newvalue = value.substr(0,value.length-1);
+					}
+					else {
+						iKind=0;
+						newvalue = value;
+					}
+				}
+			}	
+			return 	{ value: newvalue, iKind: iKind };
+		};
+		
+		var pattern = "^[0-2][0-9][:]{1}[0-5][0-9][:][0-5][0-9]$"; 
+		var res = _decomposeTimer((value==undefined) ? '00:00:00' : value );
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title='hh:mm:ss'>"+name+"</label>";
+		propertyline += "	<span title='hh:mm:ss'>"+helpGlyph+"</span>";
+		propertyline += "	<div class='form-inline'>";
+		propertyline += "	<input id='altui-widget-"+name+"' class='form-control' pattern='"+pattern+"' value='"+res.value+"' placeholder='hh:mm:ss' ></input>";
+		propertyline += "	<select id='altui-widget-type-"+name+"' class='form-control' >";
+		$.each(_timerRelative, function(idx,line){
+			propertyline += "<option value='{0}' {2}>{1}</option>".format(line.value, line.text, (idx==res.iKind)?'selected':'');
+		})
+		propertyline += "</select>";
+		propertyline += "</div>";	// form inline
+		propertyline += "</div>";	// form group
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+	
+	function _dlgAddTimer(dialog, name, label, value, htmloptions )
+	{
+		var optstr = HTMLUtils.optionsToString(htmloptions);
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title='Date Time'>"+(label ? label : name)+"</label>";
+		propertyline += "	<input required id='altui-widget-"+name+"' class='form-control' type='text' pattern='^[0-2][0-9]:[0-5][0-9]:[0-5][0-9]$' step='1' value='"+value+"' placeholder='hh:mm:ss' "+optstr+"></input>";
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+	
+	function _dlgAddDateTime(dialog, name, value )
+	{
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title='Date Time'>"+name+"</label>";
+		propertyline += "	<input id='altui-widget-"+name+"' class='form-control' type='datetime-local' value='"+value+"' placeholder='absolute time' ></input>";
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+	
+	function _dlgAddHouseMode(dialog, name, label, modes ) {
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-"+name+"' title='House Modes'>"+label+"</label>";
+		propertyline += HouseModeEditor.displayModes( 'altui-widget-'+name , '', modes );
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+
+	function _dlgAddVariables(dialog, forDeviceName, widget, cbfunc, serviceId)
+	{
+		forDeviceName = forDeviceName || "altui-select-device";
+		var htmlDeviceName = ("#"+forDeviceName);
+		$(htmlDeviceName).on("change",function() {
+			widget.properties.deviceid = $(htmlDeviceName).val();
+			var device = MultiBox.getDeviceByAltuiID(widget.properties.deviceid);
+			$("#altui-select-variable").replaceWith( _getDeviceServiceVariableSelect( device , widget.properties.service, widget.properties.variable, serviceId ) );
+		});
+		
+		//service & variables
+		widget.properties.deviceid = $(htmlDeviceName).val();
+		var device = MultiBox.getDeviceByAltuiID(widget.properties.deviceid);
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-servicevariable'>Variable</label>";
+		propertyline +=     _getDeviceServiceVariableSelect( device , widget.properties.service, widget.properties.variable, serviceId );
+		propertyline += "</div>";
+		$(dialog).find(".row-fluid").append(propertyline);
+		cbfunc();
+	};
+	
+	function _pickDevice(devices,deviceid,name) {
+		var select = $("<select id='{0}' class='form-control'></select>".format(name));
+		select.append("<option value='0' {0}>Select ...</option>".format( deviceid==NULL_DEVICE ? 'selected' : ''));
+		var rooms = {};
+		$.each(devices, function(idx,device) {
+			var devicecontroller = MultiBox.controllerOf(device.altuiid).controller;
+			var deviceroom = MultiBox.getRoomByID(devicecontroller,device.room) || {name:_T('No Room')};
+			if (rooms[deviceroom.name]==undefined)
+				rooms[deviceroom.name]=[];
+			rooms[deviceroom.name].push(device);
+		})
+		$.each(Object.keys(rooms).sort(), function(i,name) {
+			select.append("<optgroup label='"+name+"'>");
+			$.each(rooms[name], function(idx,device) {
+				select.append('<option value={0} {3}>&nbsp;&nbsp;&nbsp;&nbsp;#{2} {1}</option>'.format( device.altuiid, device.name, device.altuiid, deviceid==device.altuiid ? 'selected' : ''));
+			});
+		});		
+		return select.wrap( "<div></div>" ).parent().html();
+	};
+	
+	function _dlgAddDevices2(dialog, name, deviceid, title, devices) {
+		// all devices are enumarated
+		var name = name || 'altui-select-device';
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='altui-widget-device'>"+title+"</label>";
+		propertyline +=     _pickDevice(devices,deviceid,name);
+		propertyline += "</div>";
+		
+		$(dialog).find(".row-fluid").append(propertyline);
+};
+	
+	function _dlgAddDevices(dialog, name, deviceid, cbfunc, filterfunc)
+	{
+		var name = name || 'altui-select-device';
+		MultiBox.getDevices(
+			null,
+			$.isFunction(filterfunc) ? filterfunc : null,
+			function (devices) {
+				// all devices are enumarated
+				var propertyline = "";
+				propertyline += "<div class='form-group'>";
+				propertyline += "	<label for='altui-select-device'>"+_T("Device")+"</label>";
+				propertyline +=     _pickDevice(devices,deviceid,name);
+				propertyline += "</div>";
+				
+				$(dialog).find(".row-fluid").append(propertyline);
+				cbfunc(devices);
+			}
+		);
+	};
+	
+	function _dlgAddScenes(dialog, widget, cbfunc)
+	{
+		var select = $("<select id='altui-widget-sceneid' class='form-control'></select>");
+		select.append("<option value='0' {0}>Select ...</option>".format( widget.properties.sceneid==NULL_SCENE ? 'selected' : ''));
+		MultiBox.getScenes( 
+			function(idx, scene) {
+				select.append('<option value={0} {2}>{1}</option>'.format( scene.altuiid, scene.name, widget.properties.sceneid==scene.altuiid ? 'selected' : ''));				
+			}, 
+			null, 
+			function(scenes) {
+				var propertyline = "";
+				propertyline += "      	<div class='form-group'>";
+				propertyline += "      		<label for='altui-widget-sceneid'>Scene to Run</label>";
+				propertyline += 			select.wrap( "<div></div>" ).parent().html();
+				propertyline += "      	</div>";
+				$(dialog).find(".row-fluid").append(propertyline);
+				cbfunc();
+			} 
+		);
+	};
+
+	function _getDialogActionValue(id)
+	{
+		var val = $("#"+id).val().split('.');
+		return (val.length<2) ? {
+			service: "0",
+			action: "0"
+		} : {
+			service: val[0],
+			action: val[1]
+		};
+	};
+	
+	function _dlgAddEvents(dialog, label, htmlid, deviceid, eventid, args)
+	{
+		var selected_event = null;
+
+		function _findArgumentValue(args,id,defaultValue) {
+			var value='';
+			$.each(args,function(idx,arg) {
+				if (arg.id==id) {
+					value = (arg.value!=undefined) ? arg.value : defaultValue; 
+					return false;
+				}
+			});
+			return value;
+		};
+		
+		function _getSelectForEvents( events ) {
+			var select = $("<select required id='"+htmlid+"' class='form-control'></select>");
+			select.append("<option value='0' {0}>Select ...</option>".format( eventid==0 ? 'selected' : ''));
+			selected_event = null;
+			$.each(events, function(idx,event){
+				var selected = '';
+				if (eventid==event.id) {
+					selected_event = event;
+					selected = 'selected';
+				}
+				select.append("<option value='{0}' {2}>{1}</option>".format(
+					event.id,
+					event.label.text,
+					selected));
+			});
+			return select.wrap( "<div></div>" ).parent().html();
+		};
+
+		function _getEventArguments( selected_event, args ) {
+			var propertyline="";
+			if ((selected_event!=null) && (selected_event.argumentList)) 
+			{
+				$.each(selected_event.argumentList, function(idx,eventarg) {
+					propertyline += "<div class='form-group'>";
+					propertyline += "	<label for='altui-event-param{0}'>{1} {2}</label>".format(idx,eventarg.name,eventarg.comparisson);
+					propertyline += "	<input required id='altui-event-param{0}' type='text' class='form-control' value='{1}' placeholder='default to {2}'></input>"
+						.format(eventarg.id, _findArgumentValue(args,eventarg.id,eventarg.defaultValue), eventarg.defaultValue );
+					propertyline += "</div>";
+					// (argument.value !=undefined) ? argument.value : eventarg.defaultValue );	
+				});
+			} 
+			return propertyline;
+		}
+		
+		//callback, if select device changes, we need to update actions
+		$("#altui-select-device").on("change",function() {
+			deviceid = $(this).val();
+			args=[];
+			eventid=0;
+			selected_event = null;
+			var device = MultiBox.getDeviceByAltuiID( deviceid );
+			var events = MultiBox.getDeviceEvents(device);
+			$("select#"+htmlid).replaceWith( _getSelectForEvents( events ) );
+			$(".altui-arguments").html( _getEventArguments(selected_event, args) );
+		});
+		
+		$('div#dialogModal').on("change","#"+htmlid,function() {
+			args=[];
+			eventid=$(this).val();
+			selected_event = null;
+			var device = MultiBox.getDeviceByAltuiID( deviceid );
+			var events = MultiBox.getDeviceEvents(device);
+			$.each(events, function(idx,event){
+				if (eventid==event.id) {
+					selected_event = event;
+				}
+			});
+			$(".altui-arguments").html( _getEventArguments(selected_event, args) );
+		});
+		
+		var device = MultiBox.getDeviceByAltuiID( deviceid );
+		var events = MultiBox.getDeviceEvents(device);
+		var propertyline = "";
+		propertyline += "<div class='form-group'>";
+		propertyline += "	<label for='"+htmlid+"'>"+label+"</label>";
+		propertyline +=     _getSelectForEvents(events);
+		propertyline += "</div>";
+		
+		propertyline += "<div class='altui-arguments'>";
+		propertyline += _getEventArguments( selected_event , args );
+		propertyline += "</div>";
+		
+		$(dialog).find(".row-fluid").append(propertyline);
+	};
+	
+	function _dlgAddActions(id, dialog,widget,actiondescriptor,label, cbfunc, filterByServiceID)
+	{
+		// callback when select of actions is changed
+		function _onChangeAction(event)
+		{
+			var id = $(this).prop('id');
+			$.extend( actiondescriptor , _getDialogActionValue(id) );
+			widget.properties.deviceid = $("#altui-select-device").val();
+			_getActionParameterHtml( 
+				id+"-parameters",
+				MultiBox.getDeviceByAltuiID(widget.properties.deviceid), 
+				actiondescriptor.action, 
+				actiondescriptor, 
+				function(html) {
+					$("."+id+"-parameters").replaceWith(html);
+				}
+			);
+		};
+		
+		//callback, if select device changes, we need to update actions
+		$("#altui-select-device").on("change",function() {
+			widget.properties.deviceid = $("#altui-select-device").val();
+			actiondescriptor.service = '';
+			actiondescriptor.action = '';
+			$("."+id+"-parameters").remove();
+			var device = MultiBox.getDeviceByAltuiID(widget.properties.deviceid);
+			_getDeviceActionSelect( id, device , actiondescriptor, filterByServiceID, function (result) {
+				$("#"+id).replaceWith( result );
+				$("#"+id).on("change", _onChangeAction );
+			});
+		});
+			
+		// get actions for the selected device
+		var device = MultiBox.getDeviceByAltuiID(widget.properties.deviceid);
+		_getDeviceActionSelect( id, device , actiondescriptor, filterByServiceID, function (result) {
+			//result is a select with all the actions
+			var propertyline = "";
+			propertyline += "<div class='form-group'>";
+			propertyline += "	<label for='"+id+"'>"+label+"</label>";
+			propertyline +=     result;
+			propertyline += "</div>";
+			
+			$(dialog).find(".row-fluid").append(propertyline);
+			
+			//callback, if select action changes, we need to update parameters
+			$("#"+id).on("change", _onChangeAction );
+			cbfunc();
+		});
+	};
+
+		
+	return {
+		registerDialog : _registerDialog,		// name, html
+		clearDialog : _clearDialog,				// name
+		createSpinningDialog: _createSpinningDialog,
+		infoDialog: _infoDialog,
+		warningDialog : _warningDialog,
+		confirmDialog: _confirmDialog,
+		triggerDialog: _triggerDialog,
+		triggerUsersDialog: _triggerUsersDialog,
+		createPropertyDialog:_createPropertyDialog,
+		dlgAddHtml : _dlgAddHtml,
+		dlgAddDialogButton: _dlgAddDialogButton,	// (dialog, bSubmit, label)
+		dlgAddCheck:_dlgAddCheck,
+		dlgAddColorPicker : _dlgAddColorPicker,	//(dialog, name, label, help, value, options)
+		dlgAddLine:_dlgAddLine,
+		dlgAddUrl:_dlgAddUrl,
+		dlgAddBlockly: _dlgAddBlockly,	//(dialog, name, label, value )
+		dlgAddSelect: _dlgAddSelect,
+		dlgAddVariables:_dlgAddVariables,
+		pickDevice : _pickDevice,					//(devices,devideid,name) 
+		dlgAddDevices:_dlgAddDevices,
+		dlgAddDevices2: _dlgAddDevices2,	// (dialog, deviceid, devices)
+		dlgAddScenes:_dlgAddScenes,
+		dlgAddActions:_dlgAddActions,
+		dlgAddEvents:_dlgAddEvents,		
+		dlgAddDayOfWeek:_dlgAddDayOfWeek,
+		dlgAddTimer: _dlgAddTimer,
+		dlgAddTimeInterval: _dlgAddTimeInterval,
+		dlgAddDateTime:_dlgAddDateTime,
+		dlgAddTime:_dlgAddTime,
+		dlgAddHouseMode: _dlgAddHouseMode,		// (dialog, id, _housemodes)
+		getDialogActionValue: _getDialogActionValue
+	};
 })();
 
 if (typeof RegExp.escape == 'undefined') {
@@ -382,9 +1267,9 @@ if (typeof String.prototype.format == 'undefined') {
 		var args = new Array(arguments.length);
 
 		for (var i = 0; i < args.length; ++i) {
-		// `i` is always valid index in the arguments object
-		// so we merely retrieve the value
-		args[i] = arguments[i];
+			// `i` is always valid index in the arguments object
+			// so we merely retrieve the value
+			args[i] = arguments[i];
 		}
 
 		return this.replace(/{(\d+)}/g, function(match, number) { 
@@ -447,20 +1332,35 @@ function _toIso(date,sep) {
 };
 
 var HTMLUtils = (function() {
-	function _array2Table(arr,idcolumn,viscols) {
+	function _optionsToString(options)
+	{
+		var tbl=[];
+		options = $.extend( { },options);
+		
+		$.each( options, function(key,val) {
+			var typ = Object.prototype.toString.call(val);
+			if ((typ!="[object Object]") && (typ!="[object Array]")){
+				tbl.push("{0}='{1}'".format(key,val)); 
+			}
+		});
+		return tbl.join(' ');
+	};
+	function _array2Table(arr,idcolumn,viscols,caption,cls,htmlid) {
 		var html="";
 		var idcolumn = idcolumn || 'id';
 		var viscols = viscols || [idcolumn];
-		html+="<div class='col-xs-12'>";
+		// html+="<div class='col-xs-12'>";
 		if ( (arr) && ($.isArray(arr) && (arr.length>0)) ) {
 			var bFirst=true;
-			html+="<table id='altui-grid' class='table table-condensed table-hover table-striped'>";
+			html+="<table id='{1}' class='table table-condensed table-hover table-striped {0}'>".format(cls || '', htmlid || 'altui-grid' );
+			if (caption)
+				html += "<caption>{0}</caption>".format(caption)
 			$.each(arr, function(idx,obj) {
 				if (bFirst) {
 					html+="<thead>"
 					html+="<tr>"
 					$.each(obj, function(k,v) {
-						html+="<th data-column-id='{0}' {1} {2}>".format(
+						html+="<th style='text-transform: capitalize;' data-column-id='{0}' {1} {2}>".format(
 							k,
 							(k==idcolumn) ? "data-identifier='true'" : "",
 							"data-visible='{0}'".format( $.inArray(k,viscols)!=-1 )
@@ -484,7 +1384,9 @@ var HTMLUtils = (function() {
 			html+="</tbody>"
 			html+="</table>";		
 		}
-		html+="</div>";
+		else
+			html +="<div>{0}</div>".format(_T("No data to display"))
+		// html+="</div>";
 		return html;
 	};
 	
@@ -522,9 +1424,162 @@ var HTMLUtils = (function() {
 		html += "</div>";
 		return html
 	};	
+	
+	function _drawToolbar(_tools) {
+		var toolbarHtml="<div>";	
+		var preareas=[];
+		$.each(_tools, function(idx,tool) {
+			var collapsecss = "";
+			if (tool.collapsetarget) {
+				collapsecss="data-toggle='collapse' data-target='{0}'".format(tool.collapsetarget);
+				preareas.push(tool.collapsetarget)
+			}
+			toolbarHtml+="  <button type='button' class='btn btn-default'  {1} id='{0}' >".format(tool.id,collapsecss);
+			var glyph = "<span class='glyphicon {0}' aria-hidden='true' data-toggle='tooltip' data-placement='bottom' title='{1}'></span>".format(tool.glyph,tool.label);
+			toolbarHtml+=(glyph+ "&nbsp;" + tool.label);
+			toolbarHtml+="  </button>";			
+		});
+		toolbarHtml+="</div>";			
+		toolbarHtml+="<div>";	
+		$.each(preareas, function(idx,idPre) {
+			if (idPre.startsWith('#'))
+				idPre = idPre.substr(1)
+			toolbarHtml+="<div class='collapse' id='{0}'></div>".format(idPre);
+		});
+		toolbarHtml+="</div>";	
+		return "<div class='altui-workflow-toolbar'>"+toolbarHtml+"</div>" ;
+	};
+	function _drawFormFields( model  ) {
+		var html ="";
+		$.each(model, function(idx,line) {
+			html += "<div class='form-group'>"
+			switch(line.type) {
+				case "p":
+				case "span":
+				case "pre":
+				case "div":
+					// no form control for text display
+					html += "<label for='{0}'>{1}</label>".format(line.id,line.label);
+					html +="<{0}  id='{1}' class='' {3}>{2}</{0}>".format(
+						line.type,
+						line.id,
+						_enhanceValue(line.value),
+						HTMLUtils.optionsToString(line.opt)
+						);
+					break;
+				case "buttonbar":
+					$.each(line.value, function(idx,btn) {
+						var cls = (btn.type=="submit") ? "primary" : "default"  
+						html += "<button id='{3}' type='{0}' class='btn btn-{1}'>{2}</button>".format(btn.type,cls,btn.label,btn.id);
+					});
+					break;
+				case "input":
+					html += "<label for='{0}'>{1}</label>".format(line.id,line.label);
+					var type = (line.inputtype!=undefined) ? "type='{0}'".format(line.inputtype) : "";
+					html +="<input id='{0}' class='form-control' value='{1}' {2} {3}></input>".format(
+						line.id,
+						line.value,
+						HTMLUtils.optionsToString(line.opt),
+						type);
+					break;
+				case "accordeon":
+					html += "<label for='{0}'>{1}</label>".format(line.id,line.label);
+					html += HTMLUtils.createAccordeon(line.id,line.value);
+					break;
+			}
+			html += "</div>"
+		});
+		return html;
+	};
+	
+	function _drawForm( htmlid, title, model ) {
+		var html ="";
+		if (isNullOrEmpty(title) == false)
+			html += "<h3>{0}</h3>".format(title);
+		html += "<form id='{0}' name='{0}'>".format(htmlid)
+		html += _drawFormFields(model);
+		html += "</form>"
+		return html;
+	}
+	
+	function _enhanceValue(value) 
+	{
+		//try to guess what is the value
+		if (value==null)
+			return "";
+		var valuetype = $.type(value);
+		if ($.isNumeric(value)) {
+			if ( value>=900000000 && value <= 4035615941) {
+				var date = new Date(value*1000);
+				return date.toLocaleString();
+			}
+			return value;
+		} else if ( (valuetype==='string') && ( (value.indexOf("http") === 0) || (value.indexOf("https") === 0) || (value.indexOf("ftp") === 0) ) ) {
+			return "<a href='{0}'>{0}</a>".format(value);
+		}
+		return value.toString().htmlEncode();
+	};
+
+	function _startTimer(id,ms,callback,data) {
+		if ($(".altui-timers #"+id).length>0) {
+			AltuiDebug.warning("Cannot schedule twice the same timer %s",id);
+			return;			
+		}
+		var timerdiv = $(".altui-timers");
+		if (timerdiv.length ==0) {
+			$(".altui-mainpanel").after("<div class='altui-timers'></div>");
+			timerdiv = $(".altui-timers");
+		}
+		
+		function _timerfunc (id,callback,data) {
+			var timer = $(".altui-timers #"+id);
+			if (timer.length==0) return;
+			_stopTimer(id);
+			if ($.isFunction(callback))
+				(callback)(id,data);
+		}
+		
+		$(timerdiv).append("<div id='{0}' class='altui-timer-instance'></div>".format(id));
+		var timer = $(".altui-timers #"+id);
+		$(timer).data('timerid', setTimeout(_timerfunc,ms,id,callback,data));
+	};
+	
+	function _stopTimer(id) {
+		var timer = $(".altui-timers #"+id);
+		if (timer.length==0)
+			return;
+		var jstimer = $(timer).data('timerid');
+		clearTimeout(jstimer);
+		$(timer).remove();
+	};
+	
+	function _stopAllTimers() {
+		var timers = $(".altui-timer-instance");
+		$.each(timers, function(idx,timer) {
+			_stopTimer($(timer).prop("id"));
+		})
+		$(timers).remove();
+	};
+	
+	function _displayRECButton( htmlid ) {
+		var html ="";
+		var bRec = MultiBox.isRecording();
+		var text = (bRec==true) ? _T("Recording...") : _T("Record")
+		html += buttonTemplate.format( htmlid, 'altui-button-record btn-sm'+ (bRec==true ? ' active': ''), "{0} {1}".format(recordGlyph,text),'default',_T("Record"));
+		return html;
+	};
 	return {
-		array2Table : _array2Table,						// (arr,idcolumn,viscols)
+		enhanceValue	: _enhanceValue,
+		optionsToString : _optionsToString,
+		array2Table 	: _array2Table,			// (arr,idcolumn,viscols)
 		createAccordeon : _createAccordeon,		// (panels)
+		drawToolbar 	: _drawToolbar,
+		drawFormFields	: _drawFormFields,		
+		drawForm		: _drawForm,
+		startTimer		: _startTimer,
+		stopTimer		: _stopTimer,
+		stopAllTimers	: _stopAllTimers,
+		displayRECButton: _displayRECButton,	// ( htmlid, bRec )
 	}
 })();
 
@@ -844,7 +1899,7 @@ var PageManager = (function() {
 		AltuiDebug.debug("PageManager.savePages(), pages="+JSON.stringify(_pages));
 		MyLocalStorage.set("Pages",_pages);
 		var names = $.map( _pages, function(page,idx) {	return page.name;	} );
-		MultiBox.saveData( "CustomPages", JSON.stringify(names), function(data) {
+		MultiBox.saveData( "Data", "CustomPages", JSON.stringify(names), function(data) {
 			if (data!="")
 				PageMessage.message("Save Pages success", "success");
 			else
@@ -852,7 +1907,7 @@ var PageManager = (function() {
 		});
 		
 		$.each(_pages, function(idx,page) {
-			MultiBox.saveData( page.name, JSON.stringify(page), function(data) {
+			MultiBox.saveData( "Data", page.name, JSON.stringify(page), function(data) {
 			if (data!="")
 				PageMessage.message("Save for "+page.name+" succeeded.", "success");
 			else
@@ -980,9 +2035,803 @@ var PageManager = (function() {
 	};
 })();
 
+var WorkflowLink = function(graph,cell) {
+	var _cell = cell;
+	var _graph = graph;
+	function _stateFromID(id) {
+		for (var i=0; i<_graph.cells.length; i++) {
+			if (_graph.cells[i].id == id )
+				return _graph.cells[i];
+		}
+		return null;
+	};
+	return {
+		get id()				{ return _cell.id },
+		get name() 		{ return _cell.labels[0].attrs.text.text; },
+		get conditions() 	{ return _cell.prop.conditions || [] },
+		get schedule() 	{ return _cell.prop.schedule  },
+		get timer() 			{ return (_cell.prop.timer!="") ? { name: _cell.prop.timer , duration: _cell.prop.duration } : null },
+		get source()		{ return new WorkflowState(graph,_stateFromID(_cell.source.id)) },
+		get target()		{ return new WorkflowState(graph,_stateFromID(_cell.target.id)) },
+	}
+};
+
+var WorkflowState = function(graph,cell) {
+	var _cell = cell;
+	var _graph = graph;
+	return {
+		isStart: function() { return _cell.prop.stateinfo ? _cell.prop.stateinfo.bStart : false },
+		get name() { return _cell.attrs[".label"].text; },
+		get transitions() { 
+			return $.map( $.grep(_graph.cells, function(e) { return (e.type == "link") && (e.source.id == _cell.id) }) , function(l) {
+				return new WorkflowLink(_graph,l)
+			});
+		},
+		get id()			{ return _cell.id },
+		get conditions() 	{ return _cell.prop.conditions || [] },
+		get onEnter() 		{ return _cell.prop.onEnter || [] },
+		get onEnterScenes() { return _cell.prop.onEnterScenes || [] },
+		get onEnterLua()	{ return _cell.prop.onEnterLua || "" },
+		get onExit() 		{ return _cell.prop.onExit || [] },
+		get onExitScenes() 	{ return _cell.prop.onExitScenes || [] },
+		get onExitLua()		{ return _cell.prop.onExitLua || "" }
+	}
+};
+
+var Workflow = function (altuiid) {
+	var _workflow = WorkflowManager.getWorkflow(altuiid);
+	var _graph = JSON.parse(_workflow.graph_json);
+	
+	return {
+		updateGraph: function() {
+			_workflow.graph_json = JSON.stringify(_graph)
+		},
+		get states() { 
+			if (_graph==null)
+				return []
+			return $.map( $.grep(_graph.cells, function(e) { return e.type != "link" }) , function(s) {
+				return new WorkflowState(_graph,s);
+			})
+		}
+	}
+};
+
+var WorkflowManager = (function() {
+	var _def_workflow = {
+		altuiid:'',
+		name:'',
+		paused:false,
+		active_state:null,
+		graph_json: null		// json serialized object for the JOINTJS graph.   cellsview.model.attributes.props contains the other info
+	};
+	var _def_nodeprops = {
+		stateinfo : { bStart:false, timer:null },
+		onEnter: [],			// table of device,service,action,arguments,
+		onEnterScenes: [],		// table of sceneID,
+		onEnterLua: '',
+		onExit: [],
+		onExitScenes: [],
+		onExitLua: '',
+	};
+	var _def_linkprops = {
+		conditions: [],			// table of device,service,variable, expression with new
+		schedule: null,			// schedule ( timer of scene )
+		timer: "",				// timer name
+		duration: ""				// duration ms
+	};
+		
+	var _workflows = null;
+	var _saveNeeded = false;
+	
+	function _findWorkflowIdxByAltuiid(altuiid) {
+		for( var i=0; i<_workflows.length; i++)
+			if (_workflows[i].altuiid==altuiid)
+				return i;
+		return null;
+	};	
+	
+	function _init(workflows) {
+		_workflows = workflows;
+		// fix old data model
+		$.each(workflows,  function(i,w) {
+			w = $.extend( {}, _def_workflow, w);
+			delete w.active_states;
+		})
+	};
+	
+	function _sanitizeWorkflow(altuiid) {
+		var bSaveNeeded = false;
+		var idx = _findWorkflowIdxByAltuiid(altuiid);
+		if (idx!=null) {
+			var descr = WorkflowManager.getWorkflowDescr(altuiid)
+			$.each(descr.states, function(j,state) {
+				$.each(['onEnter','onExit'], function(k,type) {
+					for (var i=state[type].length-1; i>=0; i-- ) {
+						var device = MultiBox.getDeviceByAltuiID(state[type][i].device)
+						if (device==null) {
+							state[type].splice(i,1)
+							bSaveNeeded=true;
+						}
+					}
+				})
+				$.each(['onEnterScenes','onExitScenes'], function(k,type) {
+					for (var i=state[type].length-1; i>=0; i-- ) {
+						var scene = MultiBox.getSceneByAltuiID(state[type][i].altuiid)
+						if (scene==null) {
+							state[type].splice(i,1)
+							bSaveNeeded=true;
+						}
+					}
+				})
+				for (var i=state['conditions'].length-1; i>=0; i-- ) {
+					var device = MultiBox.getDeviceByAltuiID(state['conditions'][i].device)
+					if (device==null) {
+						state['conditions'].splice(i,1)
+						bSaveNeeded=true;
+					}
+				}
+			});
+			if (bSaveNeeded==true) {
+				descr.updateGraph();
+				_saveWorkflow(altuiid);
+			}
+		}
+	};
+
+	function _forceReloadWorkflows() {
+		var altuidevice = MultiBox.getDeviceByID( 0, g_MyDeviceID );
+		var names = $.map( _workflows, function(workflow,idx) {	return workflow.name;	} );
+		MultiBox.saveData( "Wflow", "Workflows", JSON.stringify(names), function(data) {
+			if (data!="") {
+				PageMessage.message("Save Workflows success", "success");
+				var status = parseInt(MultiBox.getStatus(altuidevice, "urn:upnp-org:serviceId:altui1", "EnableWorkflows")||'');
+				// only force reload if status was not disabled
+				if(status==1)
+					MultiBox.runAction(altuidevice, "urn:upnp-org:serviceId:altui1", "EnableWorkflows", {newWorkflowMode:1})
+			}
+			else
+				PageMessage.message("Save Workflows failure", "danger");
+		});
+	};
+	
+	function _saveWorkflow(altuiid,bReload) {
+		var dfd = $.Deferred();
+		if (bReload==undefined)
+			bReload = true;
+		
+		var idx = _findWorkflowIdxByAltuiid(altuiid);
+		if (_workflows[idx] !=null) {
+			var workflow = _workflows[idx];
+			
+			MultiBox.saveData( "Wflow", workflow.name, JSON.stringify(workflow), function(data) {
+			if (data!="") {
+				PageMessage.message("Save for "+workflow.name+" succeeded.", "success");
+				MyLocalStorage.set("Workflows",_workflows);
+				
+				// forces ALTUI device to reload workflows
+				if (bReload==true) {
+					_forceReloadWorkflows();
+				}
+				dfd.resolve();
+			}
+			else
+				PageMessage.message( "Save for "+workflow.name+" did not succeed." , "danger");
+				dfd.resolve();
+			});
+		} else 
+			dfd.resolve();
+		return dfd.promise()
+	};
+	
+	function _saveWorkflows(callback) {
+		AltuiDebug.debug("WorkflowManager.saveWorkflows(), workflows="+JSON.stringify(_workflows));
+		// MyLocalStorage.set("Workflows",_workflows);
+		
+		var dfds = [];
+		$.each(_workflows, function(idx,workflow) {
+			WorkflowManager.resyncScenes(workflow.altuiid);
+			WorkflowManager.sanitizeWorkflow(workflow.altuiid);
+			dfds.push(_saveWorkflow(workflow.altuiid,false));
+		});
+		
+		// when all are done
+		$.when.apply($, dfds).then(function() {
+			_saveNeeded = false;
+			_forceReloadWorkflows();
+			if ($.isFunction(callback)) {
+				(callback)()
+			}
+		}); 
+	};
+	
+	function _addWorkflow() {
+		var altuiid="";
+		if (_workflows.length==0)
+			altuiid="0-1";
+		else {
+			var last = _workflows[_workflows.length-1].altuiid;
+			var splits = last.split("-");
+			altuiid = "0-"+(parseInt(splits[1])+1)
+		}
+		_workflows.push( $.extend(true,{},_def_workflow,{ altuiid:altuiid, name:'Workflow '+altuiid }) );		
+		_saveNeeded = true;
+	};
+	
+	function _deleteWorkflow(altuiid) {
+		var idx = _findWorkflowIdxByAltuiid(altuiid);
+		if (idx!=null) {				
+			_workflows.splice(idx,1);
+			_saveNeeded = true;
+			return true;
+		}
+		return false;
+	};
+
+	function _renameWorkflow(altuiid,name) {
+		var idx = _findWorkflowIdxByAltuiid(altuiid);
+		if (idx!=null) {				
+			if (_workflows[idx].name == name)	return;		// cannot rename with same name
+			var names = $.map(_workflows, function(w) { return w.name } );
+			if ($.inArray(name, names) == -1) {
+				_workflows[idx].name = name;
+				_saveNeeded = true;
+				return true;
+			} 
+			DialogManager.warningDialog(_T("Workflow Name"),_T("Workflow names must be unique"));
+		}
+		return false;
+	};
+	function _resetWorkflow(altuiid) {
+		var altuidevice = MultiBox.getDeviceByID( 0, g_MyDeviceID );
+		MultiBox.runAction( altuidevice, "urn:upnp-org:serviceId:altui1", "ResetWorkflow", {workflowAltuiid:altuiid} );
+	};
+	function _pauseWorkflow(altuiid, bPause) {
+		var idx = _findWorkflowIdxByAltuiid(altuiid);
+		if (idx==null)  
+			return null;
+		_workflows[idx].paused = bPause;
+		return _saveWorkflow(altuiid,true);	// force backend to reload
+	};
+	function _getWorkflow(altuiid) {
+		for (var i=0; i<_workflows.length; i++) {
+			if (_workflows[i].altuiid == altuiid)
+				return _workflows[i];
+		}
+		return null;
+	};
+	function _setWorkflow(wkflow) {
+		_saveNeeded = true;
+		for (var i=0; i<_workflows.length; i++) {
+			if (_workflows[i].altuiid == wkflow.altuiid) {
+				_workflows[i] = cloneObject(wkflow);
+				return;
+			}
+		}
+		_workflows.push( cloneObject(wkflow) );
+	};
+	function _getWorkflowStats(altuiid) {
+		var workflow = _getWorkflow(altuiid)
+		var graph = JSON.parse(workflow.graph_json);
+		var states = $.map($.grep(graph.cells, function(e) { return e.type != "link" }),function(e) {
+			return e.attrs[".label"].text;
+		});
+		var links = $.map($.grep(graph.cells, function(e) { return e.type == "link" }),function(e) {
+			return e.labels[0].attrs.text.text;
+		});
+		if (workflow) {
+			return {
+				nStates: states.length,
+				States: states,
+				nLinks: links.length,
+				Links: links,
+			}
+		}
+		return {
+			nStates: 0,
+			nLinks: 0,
+		}
+	};
+	function _getWorkflowDescr(altuiid) {
+		return new Workflow(altuiid);
+	};
+	function _getLinkScheduleScene(workflow_altuiid, linkid) {
+		var scheduled_scene = null
+		var scenes = MultiBox.getScenesSync();
+		$.each(scenes, function(i,scene) {
+			if ( (scene.groups) && (scene.groups.length>0) ) {
+				if ( (scene.groups[0].actions) && (scene.groups[0].actions.length>0) ) {
+					var action = scene.groups[0].actions[0];
+					if ( (action.device == g_MyDeviceID) 
+						&& (action.service == "urn:upnp-org:serviceId:altui1") 
+						&& (action.action == "TriggerTransition")
+						&& (action.arguments.length>0) 
+						&& (action.arguments[0].value == workflow_altuiid)
+						&& (action.arguments[1].value == linkid) ) 
+					{
+							scheduled_scene = scene;
+							return false;
+					}
+				}
+			}
+		})
+		return scheduled_scene;
+	};
+	function _setLinkScheduleScene(workflow_altuiid, link) {
+		// search for scene
+		var scheduled_scene = _getLinkScheduleScene(workflow_altuiid, link.id)
+
+		// create if it does not exists yet
+		if (scheduled_scene==null) {
+			var newid = MultiBox.getNewSceneID( MultiBox.controllerOf(workflow_altuiid).controller );
+			var name = "Workflow {0}".format(workflow_altuiid);
+			scheduled_scene = {
+				"timers":[ link.prop.schedule ],
+				"triggers":[],
+				"groups":[
+					{"delay":0,"actions":[
+						{
+								"device": g_MyDeviceID ,
+								"service":"urn:upnp-org:serviceId:altui1",
+								"action":"TriggerTransition",
+								"arguments":[
+									{"name":"workflowAltuiid","value":workflow_altuiid},
+									{"name":"transitionId","value":link.id}
+								]
+						}
+					]}
+				],
+				"name":name,
+				"lua":"",
+				"modeStatus": link.prop.schedule.modeStatus || "0",
+				"paused":0,
+				"id":newid.id,
+				"Timestamp":0,
+				"favorite":false,
+				"last_run":0,
+				"room":0,
+				"altuiid":newid.altuiid
+			}
+		} else {
+			scheduled_scene.timers=[ link.prop.schedule ]
+			scheduled_scene.modeStatus = link.prop.schedule.modeStatus || "0"
+		}
+		MultiBox.editScene(scheduled_scene.altuiid , scheduled_scene);
+	}
+	function _clearLinkScheduleScene(workflow_altuiid, link) {
+		// search for scene
+		var scheduled_scene = _getLinkScheduleScene(workflow_altuiid, link.id)
+		if (scheduled_scene) {
+			MultiBox.deleteScene(scheduled_scene)
+		}
+	};
+	function _resyncScenes(workflow_altuiid) {
+		// find workflow
+		var workflow = _getWorkflow(workflow_altuiid)
+		if (!workflow)
+			return;
+		
+		var graph = JSON.parse(workflow.graph_json);
+		var links = $.grep(graph.cells, function(e) { return e.type == "link" });
+		var maplinks = {}
+		// for all link conditions which contains a schedule
+		// find the corresponding scene, if found edit , otherwise create
+		// for all link conditions which do not a schedule
+		// remove the eventual corresponding scene if it exists
+		$.each(links, function(idx,link) {
+			maplinks[ link.id ] = link;
+			if (link.prop.schedule) {
+				//Search Create or Edit scene
+				_setLinkScheduleScene(workflow_altuiid, link) 
+			} else  {
+				_clearLinkScheduleScene(workflow_altuiid, link)
+			}
+		})
+		
+		// for all the other scenes for this workflow which try to trigger an existant link or a link which does not have a schedule, delete the scene
+		var todel=[];
+		$.each(MultiBox.getScenesSync(), function(i,scene) {
+			if ( (scene.groups) && (scene.groups.length>0) ) {
+				if ( (scene.groups[0].actions) && (scene.groups[0].actions.length>0) ) {
+					var action = scene.groups[0].actions[0];
+					if ( (action.device == g_MyDeviceID) 
+						&& (action.service == "urn:upnp-org:serviceId:altui1") 
+						&& (action.action == "TriggerTransition")
+						&& (action.arguments.length>0) 
+						&& (action.arguments[0].value == workflow_altuiid)
+						&& (maplinks[ action.arguments[1].value ] == undefined) ) 
+					{
+						// scene for this workflow but link is not valid
+						todel.push(scene);
+					}
+				}
+			}
+		})
+		$.each(todel, function(idx,scene) {
+			MultiBox.deleteScene(scene)
+		})
+	};
+	function _setGraph(altuiid,jsonstr) {
+		var idx = _findWorkflowIdxByAltuiid(altuiid);
+		if (idx!=null) {
+			_workflows[idx].graph_json = jsonstr;
+			return true;
+		}		
+		return false;
+	};
+	return {
+		init: _init,
+		saveNeeded : function() 	{ return _saveNeeded; },
+		getNodeProperties: function( obj )	{ return $.extend(true,{},_def_nodeprops, obj) },	// insure the defaults evolves
+		getLinkProperties: function( obj )	{ return $.extend(true,{},_def_linkprops, obj) },
+		getWorkflows : function()	{ return _workflows; },
+		getWorkflow: _getWorkflow,
+		setWorkflow: _setWorkflow,									// workflow
+		getWorkflowStats : _getWorkflowStats,					// (altuiid)
+		getWorkflowDescr : _getWorkflowDescr,					// (altuiid)
+		clearLinkScheduleScene : _clearLinkScheduleScene,	// workflow_altuiid, link
+		resyncScenes : _resyncScenes ,								// workflow_altuiid
+		setGraph: _setGraph,
+		saveWorkflows : _saveWorkflows,
+		saveWorkflow : _saveWorkflow,				// (altuiid)
+		addWorkflow : _addWorkflow,
+		deleteWorkflow: _deleteWorkflow,
+		renameWorkflow: _renameWorkflow,
+		resetWorkflow: _resetWorkflow,			//(altuiid)
+		pauseWorkflow: _pauseWorkflow,			//(altuiid)
+		sanitizeWorkflow: _sanitizeWorkflow
+	}
+})();
+
+var BlocklyArea = (function(htmlid){
+	var _htmlid = htmlid;
+	var _blocklyDiv = null;
+	var _workspace = null;
+	function _createBlocklyArea() {
+		var html="";
+		html += "<div class='altui-blockly-editor' style='display: none;' >";
+			html += "<div class='panel panel-default'>";
+			html += "  <div class='panel-heading'>";
+			html += "    <h3 class='panel-title'>Watch Expression</h3>";
+			html += "  </div>";
+			html += "  <div class='panel-body'>";
+				html+="<xml id='toolbox' style='display: none'>";
+				html+="    <category name='Watch Types'>";
+				html+="      <block type='when'></block>";
+				html+="      <block type='whensince'></block>";
+				html+="    </category>";
+				html+="    <category name='Variable'>";
+					html+="  <block type='new_value'></block>";
+					html+="  <block type='old_value'></block>";
+					// html+="  <block type='variables_get'>";
+					// html+="    <field name='VAR'>new</field>";
+					// html+="  </block>";
+					// html+="  <block type='variables_get'>";
+					// html+="    <field name='VAR'>old</field>";
+					// html+="  </block>";
+				html+="    </category>";
+				html+="    <category name='Time'>";
+					html+="  <block type='now_value'></block>";
+					html+="  <block type='lastupdate_value'></block>";
+					html+="  <block type='duration'></block>";
+					html+="  <block type='duration_value'></block>";
+				html+="    </category>";
+				html+="    <category name='Luup'>";
+					html+="  <block type='device'></block>";
+				html+="    </category>";
+				html+="    <category name='Logic'>";
+				// html+="      <block type='controls_if'></block>";
+				html+="      <block type='logic_compare'></block>";
+				html+="      <block type='logic_operation'></block>";
+				html+="      <block type='logic_negate'></block>";
+				html+="      <block type='logic_boolean'></block>";
+				html+="      <block type='logic_null'></block>";
+				html+="      <block type='logic_ternary'></block>";
+				html+="    </category>";
+				// html+="    <category id='catLoops'>";
+				// html+="      <block type='controls_repeat_ext'>";
+				// html+="        <value name='TIMES'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>10</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='controls_whileUntil'></block>";
+				// html+="      <block type='controls_for'>";
+				// html+="        <value name='FROM'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>1</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="        <value name='TO'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>10</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="        <value name='BY'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>1</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='controls_forEach'></block>";
+				// html+="      <block type='controls_flow_statements'></block>";
+				// html+="    </category>";
+				html+="    <category name='Math'>";
+				html+="      <block type='math_number'></block>";
+				html+="      <block type='math_arithmetic'></block>";
+				html+="      <block type='math_single'></block>";
+				html+="      <block type='math_trig'></block>";
+				html+="      <block type='math_constant'></block>";
+				html+="      <block type='math_number_property'></block>";
+				// html+="      <block type='math_change'>";
+				// html+="        <value name='DELTA'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>1</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				html+="      <block type='math_round'></block>";
+				// html+="      <block type='math_on_list'></block>";
+				html+="      <block type='math_modulo'></block>";
+				// html+="      <block type='math_constrain'>";
+				// html+="        <value name='LOW'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>1</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="        <value name='HIGH'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>100</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='math_random_int'>";
+				// html+="        <value name='FROM'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>1</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="        <value name='TO'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>100</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='math_random_float'></block>";
+				html+="    </category>";
+				html+="    <category name='Text'>";
+				html+="      <block type='text'></block>";
+				html+="      <block type='text_join'></block>";
+				html+="      <block type='text_append'>";
+				html+="        <value name='TEXT'>";
+				html+="          <block type='text'></block>";
+				html+="        </value>";
+				html+="      </block>";
+				html+="      <block type='text_length'></block>";
+				html+="      <block type='text_tonumber'></block>";
+				html+="      <block type='text_isEmpty'></block>";
+				html+="      <block type='text_indexOf'>";
+				html+="        <value name='VALUE'>";
+				html+="          <block type='variables_get'>";
+				html+="            <field name='VAR' class='textVar'>...</field>";
+				html+="          </block>";
+				html+="        </value>";
+				html+="      </block>";
+				html+="      <block type='text_charAt'>";
+				html+="        <value name='VALUE'>";
+				html+="          <block type='variables_get'>";
+				html+="            <field name='VAR' class='textVar'>...</field>";
+				html+="          </block>";
+				html+="        </value>";
+				html+="      </block>";
+				html+="      <block type='text_getSubstring'>";
+				html+="        <value name='STRING'>";
+				html+="          <block type='variables_get'>";
+				html+="            <field name='VAR' class='textVar'>...</field>";
+				html+="          </block>";
+				html+="        </value>";
+				html+="      </block>";
+				html+="      <block type='text_changeCase'></block>";
+				html+="      <block type='text_trim'></block>";
+				// html+="      <block type='text_print'></block>";
+				// html+="      <block type='text_prompt_ext'>";
+				// html+="        <value name='TEXT'>";
+				// html+="          <block type='text'></block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				html+="    </category>";
+				// html+="    <category id='catLists'>";
+				// html+="      <block type='lists_create_empty'></block>";
+				// html+="      <block type='lists_create_with'></block>";
+				// html+="      <block type='lists_repeat'>";
+				// html+="        <value name='NUM'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>5</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='lists_length'></block>";
+				// html+="      <block type='lists_isEmpty'></block>";
+				// html+="      <block type='lists_indexOf'>";
+				// html+="        <value name='VALUE'>";
+				// html+="          <block type='variables_get'>";
+				// html+="            <field name='VAR' class='listVar'>...</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='lists_getIndex'>";
+				// html+="        <value name='VALUE'>";
+				// html+="          <block type='variables_get'>";
+				// html+="            <field name='VAR' class='listVar'>...</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='lists_setIndex'>";
+				// html+="        <value name='LIST'>";
+				// html+="          <block type='variables_get'>";
+				// html+="            <field name='VAR' class='listVar'>...</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='lists_getSublist'>";
+				// html+="        <value name='LIST'>";
+				// html+="          <block type='variables_get'>";
+				// html+="            <field name='VAR' class='listVar'>...</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='lists_split'>";
+				// html+="        <value name='DELIM'>";
+				// html+="          <block type='text'>";
+				// html+="            <field name='TEXT'>,</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="    </category>";
+				// html+="    <category id='catColour'>";
+				// html+="      <block type='colour_picker'></block>";
+				// html+="      <block type='colour_random'></block>";
+				// html+="      <block type='colour_rgb'>";
+				// html+="        <value name='RED'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>100</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="        <value name='GREEN'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>50</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="        <value name='BLUE'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>0</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="      <block type='colour_blend'>";
+				// html+="        <value name='COLOUR1'>";
+				// html+="          <block type='colour_picker'>";
+				// html+="            <field name='COLOUR'>#ff0000</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="        <value name='COLOUR2'>";
+				// html+="          <block type='colour_picker'>";
+				// html+="            <field name='COLOUR'>#3333ff</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="        <value name='RATIO'>";
+				// html+="          <block type='math_number'>";
+				// html+="            <field name='NUM'>0.5</field>";
+				// html+="          </block>";
+				// html+="        </value>";
+				// html+="      </block>";
+				// html+="    </category
+				// html+="    <sep></sep>";
+				// html+="    <category id='catVariables' custom='VARIABLE'></category>";
+				// html+="    <category id='catFunctions' custom='PROCEDURE'></category>";
+				html+="  </xml>";
+				html += _T("Watch Formula");
+				html += "<div id='blocklyDiv' style='height: 280px; width: 100%;'></div>";
+				// html += "<div id='blocklyDiv' style='height: 480px; width: 600px;'></div>";
+				html += _T("Generated code");
+				html += "<pre id='blocklyDivCode'></pre>";
+				html += buttonTemplate.format( 'altui-close-blockly', '', _T('Close'),'default',_T('Close'));
+				html += buttonTemplate.format( 'altui-save-blockly', '', _T('Submit'),'primary',_T('Save'));
+			html += "  </div>";
+			html += "</div>";
+		html += "</div>";
+		return html
+	};
+	
+	function _myUpdateFunction() {
+		var code = Blockly.Lua.workspaceToCode(_workspace);
+		$("#blocklyDivCode").text(code);
+	}
+	function _initBlocklyEditor(blocklyDiv,toolboxid,initxml,callback) {
+		_blocklyDiv= blocklyDiv;
+		// create if needed, just show otherwise
+		if ((_workspace==null) || ($("#"+blocklyDiv+" SVG").length==0) ){
+			_workspace = Blockly.inject(blocklyDiv,{toolbox: document.getElementById(toolboxid)});	
+			_workspace.addChangeListener(_myUpdateFunction);
+			$(".altui-blockly-editor").data('workspace',_workspace);
+		}
+		else {
+			$(".altui-blockly-editor #"+_blocklyDiv).toggle(true);
+			$(".altui-blockly-editor").toggle(true);
+			$(".blocklyToolboxDiv").toggle(true);
+		}
+		
+		// init content
+		if (initxml !="") {
+			var xml = Blockly.Xml.textToDom(initxml || "");
+			Blockly.Xml.domToWorkspace(_workspace, xml);
+		}
+		else {
+			Blockly.mainWorkspace.clear();
+		}
+		
+		// init callback
+		$("#altui-close-blockly").off('click').click( function() {
+			if ($.isFunction(callback)) {
+				(callback)(null,null);
+			}
+		});
+		$("#altui-save-blockly").off('click').click( function() {
+			if ($.isFunction(callback)) {
+				var txt = trim($("#blocklyDivCode").text());
+				var xmlstr = Blockly.Xml.domToText( Blockly.Xml.workspaceToDom(_workspace) );
+				(callback)(txt,xmlstr);
+			}
+		});		
+	};
+	function _hideEditor() {
+		_workspace.removeChangeListener(_myUpdateFunction);
+		// $(".altui-blockly-editor").data('workspace',null);
+		$("#blocklyDivCode").text("");
+		$(".altui-blockly-editor #"+_blocklyDiv).toggle(false);
+		$(".altui-blockly-editor").toggle(false);
+		$(".blocklyToolboxDiv").toggle(false);
+		$(".blocklyWidgetDiv").empty();
+	};
+	return {
+		createBlocklyArea: _createBlocklyArea,
+		initBlocklyEditor: _initBlocklyEditor,
+		hideEditor: _hideEditor,
+	};
+})();
+
 var IconDB = ( function (window, undefined) {
 	var _dbIcon = null;
 	
+	function _getDynamicIcon( controllerid, name , cbfunc ) {
+		if (_dbIcon == null) {
+			_dbIcon = MyLocalStorage.get("IconDB");
+			if (_dbIcon==null)
+				_dbIcon={}
+		}
+
+		// do not load http based sources from the VERA itself
+		if (name.startsWith("http"))
+			return name;
+
+		// if undefined and not yet started to fetch, then go fetch it
+		if (_dbIcon[name]==undefined) {
+			_dbIcon[name]="pending"
+			$.ajax({
+				url:  MultiBox.getIconPath(controllerid, name ),
+				dataType: "xml",
+				cache:false,
+				async:false,
+				success: function (data) {
+					_dbIcon[name] = data;
+				}
+			});
+		}
+
+		// if not yet there, or still pending , return nothing - it will arrive later in a callback
+		return ((_dbIcon[name]!=undefined) && (_dbIcon[name]!="pending"))  ? _dbIcon[name] : "" ;
+	};
+
 	function _getIconContent( controllerid, name , cbfunc ) {
 		if (_dbIcon == null) {
 			_dbIcon = MyLocalStorage.get("IconDB");
@@ -1012,13 +2861,13 @@ var IconDB = ( function (window, undefined) {
 	};
 	
 	return {
+		getDynamicIcon  : _getDynamicIcon,	// ( controllerid, name , cbfunc ) 
 		getIconContent  : _getIconContent,	// ( controllerid, name , cbfunc ) 
 		isDB			: function()	{ 	return MyLocalStorage.get("IconDB")!=null;			},
 		saveDB			: function() 	{	MyLocalStorage.set("IconDB", _dbIcon);	  	},
 		resetDB			: function() 	{	MyLocalStorage.clear("IconDB"); _dbIcon = {}; }
 	}
 } )( window );
-
 
 var HtmlResourcesDB = (function (window,undefined) {
 	var _resourceLoaded=[]
@@ -2260,7 +4109,6 @@ function _sortByVariableName(a,b)
             if(this.options.enableClickableOptGroups && this.options.multiple) {
                 $('li.multiselect-group', this.$ul).on('click', $.proxy(function(event) {
                     event.stopPropagation();
-                    console.log('test');
                     var group = $(event.target).parent();
 
                     // Search all option in optgroup

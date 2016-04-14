@@ -12,6 +12,27 @@
 			setDebugMode(lul_device,lul_settings.newDebugMode)
 	  </run>
 	</action>
+    <action>
+	 <serviceId>urn:upnp-org:serviceId:altui1</serviceId>
+	 <name>EnableWorkflows</name>
+	  <run>
+			enableWorkflows(lul_device,lul_settings.newWorkflowMode)
+	  </run>
+	</action>
+    <action>
+	 <serviceId>urn:upnp-org:serviceId:altui1</serviceId>
+	 <name>ResetWorkflow</name>
+	  <run>
+			resetWorkflow(lul_device,lul_settings.workflowAltuiid)
+	  </run>
+	</action>
+    <action>
+	 <serviceId>urn:upnp-org:serviceId:altui1</serviceId>
+	 <name>TriggerTransition</name>
+	  <run>
+			triggerTransition(lul_device,lul_settings.workflowAltuiid,lul_settings.transitionId)
+	  </run>
+	</action>
 	<action>
 		<serviceId>urn:upnp-org:serviceId:altui1</serviceId>
 		<name>RegisterPlugin</name>

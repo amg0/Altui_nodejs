@@ -43,11 +43,100 @@
 		],
 		"Control": [
 			{
+				"ControlType": "label",
+				"top": "0",
+				"left": "0",
+				"text_align": "left",
+				"Label": {
+					"lang_tag": "workflow_label",
+					"text": "Workflow Mode:"
+				},
+				"Display": {
+					"Top": 10,
+					"Left": 10,
+					"Width": 50,
+					"Height": 20
+				}
+			},
+			{
+				"ControlType": "multi_state_button",
+				"top": "0",
+				"left": "1",
+				"Display": {
+					"Top": 0,
+					"Left": 140
+				},
+				"states": [
+					{
+						"Label": {
+							"lang_tag": "workflow_on",
+							"text": "Workflow"
+						},
+						"ControlGroup": "1",
+						"Display": {
+							"Service": "urn:upnp-org:serviceId:altui1",
+							"Variable": "EnableWorkflows",
+							"Value": "1"
+						},
+						"Command": {
+							"Service": "urn:upnp-org:serviceId:altui1",
+							"Action": "EnableWorkflows",
+							"Parameters": [
+								{
+									"Name": "newWorkflowMode",
+									"Value": "1"
+								}
+							]
+						},
+						"ControlCode": "workflow_on"
+					},
+					{
+						"Label": {
+							"lang_tag": "workflow_off",
+							"text": "Normal"
+						},
+						"ControlGroup": "1",
+						"Display": {
+							"Service": "urn:upnp-org:serviceId:altui1",
+							"Variable": "EnableWorkflows",
+							"Value": "0"
+						},
+						"Command": {
+							"Service": "urn:upnp-org:serviceId:altui1",
+							"Action": "EnableWorkflows",
+							"Parameters": [
+								{
+									"Name": "newWorkflowMode",
+									"Value": "0"
+								}
+							]
+						},
+						"ControlCode": "workflow_off"
+					}
+				]
+			},
+			{
+				"ControlType": "label",
+				"top": "0",
+				"left": "0",
+				"text_align": "left",
+				"Label": {
+					"lang_tag": "debug_label",
+					"text": "Debug Mode:"
+				},
+				"Display": {
+					"Top": 60,
+					"Left": 10,
+					"Width": 50,
+					"Height": 20
+				}
+			},
+			{
 				"ControlType": "multi_state_button",
 				"top": "0",
 				"left": "0",
 				"Display": {
-					"Top": 0,
+					"Top": 50,
 					"Left": 140
 				},
 				"states": [
@@ -113,7 +202,7 @@
 					"Variable": "Present",
 					"Value": "1",
 					"Top": 110,
-					"Left": 50,
+					"Left": 140,
 					"Width": 75,
 					"Height": 20
 				},
@@ -133,7 +222,7 @@
 					"text": "Version"
 				},
 				"Display": {
-					"Top": 75,
+					"Top": 110,
 					"Left": 10,
 					"Width": 50,
 					"Height": 20
@@ -149,8 +238,8 @@
 				"Display": {
 					"Service": "urn:upnp-org:serviceId:altui1",
 					"Variable": "Version",
-					"Top": 75,
-					"Left": 80,
+					"Top": 130,
+					"Left": 10,
 					"Width": 50,
 					"Height": 20
 				}

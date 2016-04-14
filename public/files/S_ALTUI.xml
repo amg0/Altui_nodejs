@@ -18,6 +18,24 @@
             <shortCode>debug</shortCode>
         </stateVariable>
         <stateVariable sendEvents="no">
+            <name>WorkflowAltuiid</name>
+            <dataType>string</dataType>
+            <defaultValue>"0-0"</defaultValue>
+            <shortCode>workflowaltuiid</shortCode>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>WorkflowMode</name>
+            <dataType>boolean</dataType>
+            <defaultValue>0</defaultValue>
+            <shortCode>workflowmode</shortCode>
+        </stateVariable>
+        <stateVariable sendEvents="no">
+            <name>TransitionId</name>
+            <dataType>string</dataType>
+            <defaultValue>""</defaultValue>
+            <shortCode>transitionid</shortCode>
+        </stateVariable>
+        <stateVariable sendEvents="no">
             <name>Url</name>
             <dataType>string</dataType>
             <defaultValue></defaultValue>
@@ -86,6 +104,41 @@
                     <name>newDebugMode</name>
                     <direction>in</direction>
                     <relatedStateVariable>Debug</relatedStateVariable>
+                </argument>
+            </argumentList>
+        </action>
+		<action>
+            <name>EnableWorkflows</name>
+            <argumentList>
+                <argument>
+                    <name>newWorkflowMode</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>WorkflowMode</relatedStateVariable>
+                </argument>
+            </argumentList>
+        </action>
+		<action>
+            <name>ResetWorkflow</name>
+            <argumentList>
+                <argument>
+                    <name>workflowAltuiid</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>WorkflowAltuiid</relatedStateVariable>
+                </argument>
+            </argumentList>
+        </action>
+		<action>
+            <name>TriggerTransition</name>
+            <argumentList>
+                <argument>
+                    <name>workflowAltuiid</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>WorkflowAltuiid</relatedStateVariable>
+                </argument>
+                <argument>
+                    <name>transitionId</name>
+                    <direction>in</direction>
+                    <relatedStateVariable>TransitionId</relatedStateVariable>
                 </argument>
             </argumentList>
         </action>

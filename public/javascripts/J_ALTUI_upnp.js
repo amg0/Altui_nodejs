@@ -13,7 +13,7 @@ var UPnPHelper = (function(ip_addr,veraidx) {
 	//---------------------------------------------------------
 	// private functions
 	//---------------------------------------------------------	
-	var _ipaddr = trim(ip_addr || '');
+	var _ipaddr = (ip_addr.trim()) || '';
 	var _veraidx = veraidx || 0;
 	var _proxyresultarea = "altuictrl"+_veraidx;
 	var _urlhead = (_ipaddr=='') ? window.location.pathname : ("http://{0}/port_3480/data_request".format(_ipaddr));
@@ -467,7 +467,10 @@ var UPnPHelper = (function(ip_addr,veraidx) {
 	function _sceneAction( sceneobj, cbfunc ) {
 		// prevent VERA from storing this
 		var newscene = $.extend(true,{},sceneobj);
+
+		// remove things added by ALTUI to avoid messing up VERA
 		delete newscene['altuiid'];
+		delete newscene['active'];
 		
 		// if (_ipaddr=='') {
 		if (0) {
@@ -502,6 +505,47 @@ var UPnPHelper = (function(ip_addr,veraidx) {
 			return jq;
 		}
 	};
+
+	//exemple of debug use : MultiBox.getControllers()[0].controller.getUPnPHelper().modifyDevice( MultiBox.getDeviceByAltuiID("0-148") ) 	
+	function _modifyDevice( device, cbfunc)
+	{
+		var target = {};
+		target.devices={};
+		target.devices["devices_"+device.id]={
+			states:[]
+		};
+
+		// build state map with unique ID for states
+		var states_arr = target.devices["devices_"+device.id].states;	
+		$.each(device.states, function(idx,state) {
+			state.id = idx;
+			states_arr.push(state)
+		});
+
+		console.log("modified device:",target)
+		// var target = {
+			// "devices":{
+				// "devices_5": {
+					// "states": [
+					//  {},
+					//  ...
+					// ],
+					// "model": "test"
+				// }
+			// }
+		// };
+		return _ModifyUserData( target, function(result) {
+			if (result==null) {
+				PageMessage.message( "Modify Device action failed!", "warning" );				
+			}
+			else {
+				PageMessage.message( "Modify Device succeeded! a LUUP reload will happen now, be patient", "success" );			
+			}
+			if ($.isFunction(cbfunc))
+				(cbfunc)(result);
+		});		
+	};
+
 	
 	return {
 		//---------------------------------------------------------
@@ -527,6 +571,7 @@ var UPnPHelper = (function(ip_addr,veraidx) {
 		ModifyUserData	: _ModifyUserData,
 		renameDevice 	: _renameDevice,		// ( device, newname, roomid )
 		createDevice	: _createDevice,
+		modifyDevice	: _modifyDevice,		// (device) , to updates states, potentially can delete a state
 		sceneAction 	: _sceneAction,			// (scene,cbfunc) 
 	};
 });	// not invoked, the object does not exist

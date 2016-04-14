@@ -176,7 +176,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 		});
 		// on off 
 		html += "<script type='text/javascript'>";
-		html += "$('div#altui-vswitch-{0}').on('click touchend', function() { ALTUI_PluginDisplays.toggleVswitch('{0}','div#altui-vswitch-{0}'); } );".format(device.altuiid);
+		html += "$('div#altui-vswitch-{0}').on('click', function() { ALTUI_PluginDisplays.toggleVswitch('{0}','div#altui-vswitch-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		return html;
 	}
@@ -379,13 +379,13 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 				function doItNow(obj) {
 					var params = {}; params[obj.name]=obj.value;
 					MultiBox.runActionByAltuiID(obj.altuiid, obj.service, obj.action, params);			
-					console.log("timer doItNow() :" + JSON.stringify(obj));
+					// console.log("timer doItNow() :" + JSON.stringify(obj));
 					$(obj.button).data("timer",null);
 				};
 				var timer = $(this).data("timer");
 				if (timer!=undefined) {
 					clearTimeout(timer);
-					console.log("clear Timeout({0})".format(timer));
+					// console.log("clear Timeout({0})".format(timer));
 				}
 				timer = setTimeout(doItNow,1500,{
 						button: $(this),
@@ -395,7 +395,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 						action: action,
 						value : value+incr
 				});
-				console.log("set Timeout({0})  params:{1}".format(timer,value+incr));
+				// console.log("set Timeout({0})  params:{1}".format(timer,value+incr));
 				$(this).data("timer",timer);
 			}	
 		);
@@ -479,7 +479,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 		html += "</div>";
 		
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-wc-{0} button').on('click touchend', function() { ALTUI_PluginDisplays.onClickWindowCoverButton($(this)); } );".format(device.altuiid);
+		html += " $('div#altui-wc-{0} button').on('click', function() { ALTUI_PluginDisplays.onClickWindowCoverButton($(this)); } );".format(device.altuiid);
 		html += "</script>";
 		
 		return html;
@@ -498,6 +498,36 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 		MultiBox.setStatus(device,'urn:micasaverde-com:serviceId:Color1','CurrentColor',currentColor); 		
 	};
 	
+// cybermag contributions for Hue2
+// helper functions
+	function _clamp( x, min, max ) {
+		if(x<min){ return min; }
+		if(x>max){ return max; }
+		return Math.floor(x);
+	};
+
+	function _colorTemperatureToHex(kelvin){
+		var temp = kelvin / 100;
+		var red, green, blue;
+		if( temp <= 66 ){
+			red = 255;
+			green = temp;
+			green = 99.4708025861 * Math.log(green) - 161.1195681661;
+			if( temp <= 19){
+				blue = 0;
+			} else {
+				blue = temp-10;
+				blue = 138.5177312231 * Math.log(blue) - 305.0447927307;
+			}
+		} else {
+			red = temp - 60;
+			red = 329.698727446 * Math.pow(red, -0.1332047592);
+			green = temp - 60;
+			green = 288.1221695283 * Math.pow(green, -0.0755148492 );
+			blue = 255;
+		}
+		return rgbToHex(_clamp(red,0,255),_clamp(green,0, 255),_clamp(blue,0,255));
+	}
 	function _drawDimmable( device, colorpicker ) {
 
 		var html = "";
@@ -519,17 +549,50 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 		var current = "#ffffff";
 		if (colorpicker)// color picker 
 		{
+			// Cybermag's contribution 
+			// UI7 implementation no longer seems to use the "x=" part and also uses:
+			// "w,c"  - w = warm white value, c = cool white value
+			// "r,g,b" - r,g,b = RGB color values
+			// "w,c,r,g,b"  - w = warm white value, c = cool white value
+			// "ct" - ct = color temperature value in Kelvin (integer between 2000 and 9000)
+
 			// try Target then Current
 			current = MultiBox.getStatus(device,'urn:micasaverde-com:serviceId:Color1','TargetColor') || MultiBox.getStatus(device,'urn:micasaverde-com:serviceId:Color1','CurrentColor');
 			if (current!=null) {
-				var parts = current.split(",");	// 0=0,1=0,2=0,3=0,4=255
-				current = rgbToHex(
-					parseInt(parts[2].substring(2)), 
-					parseInt(parts[3].substring(2)), 
-					parseInt(parts[4].substring(2))
-					);		
-			} else
-				current="#ffffff";
+				var parts = current.split(","); // 0=0,1=0,2=0,3=0,4=255
+				// normalize the values
+				for (var i = 0; i < parts.length; i = i + 1) {
+					var part = (parts[i].split("=").length!==2)?parseInt(parts[i]):(parts[i].split("=")[1]!=="")?parseInt(parts[i].split("=")[1]):undefined;
+					parts[i] = part;
+				}
+				if (parts[2] && parts[3] && parts[4] && (((parts[0] === 0) && (parts[1] === 0)) || ((parts[0] === undefined) && (parts[1] === undefined)))) {
+					// all five parameters are specified - color temperature values are both zero
+					current = rgbToHex(parts[2],parts[3],parts[4]);
+				} else if (parts[0] && parts[1] && parts[2] && !parts[3] && !parts[4]) {
+					current = rgbToHex(parts[0],parts[1],parts[2]);
+				} else if (parts[0] || parts[1]) {
+					// color temperature
+					var Kelvin = 0;
+					if ((parts[0] > 0) && ((parts[1] === 0)||(!parts[1]))) {
+						Kelvin = 2000 + ((parts[0]/255) * 3500);
+						current = _colorTemperatureToHex(Kelvin);
+					} else if ((parts[1] > 0) && ((parts[0] === 0)||!parts[0])) {
+						Kelvin = 5500 + ((parts[1]/255) * 3500);
+						current = _colorTemperatureToHex(Kelvin);
+					} else {
+						// both cool and warm set is an error
+						current = "#FFFFFF";
+					}
+				} else if (parts[0]) {
+					current = _colorTemperatureToHex(parts[0]);
+				} else {
+				  current="#ffffff";
+				}
+			} else {
+			  current="#ffffff";
+			}
+			// console.log("Current: "+current);
+
 			// html+=("<input id='altui-colorpicker-{0}' class='altui-colorpicker pull-right' type='color' value='{1}'></input>".format(device.altuiid,current));
 			html+=("<div class='altui-colorpicker pull-right'><input id='altui-colorpicker-{0}' value='{1}'></input></div>".format(device.altuiid,current));
 		}
@@ -551,7 +614,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 				$(this).closest('.altui-device').toggleClass('altui-norefresh'); 	\
 			}	\
 		});".format(device.altuiid,current);
-		html += "$('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_PluginDisplays.toggleOnOffButton('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += "$('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_PluginDisplays.toggleOnOffButton('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "$('div#slider-{0}.altui-dimmable-slider').slider({ max:100,min:0,value:{1},change:ALTUI_PluginDisplays.onSliderChange });".format(device.altuiid,level);
 		if (colorpicker) { // color picker 
 			html += "$('div#slider-{0}.altui-dimmable-slider').css('margin-right','120px');".format(device.altuiid)
@@ -580,7 +643,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 			html+= "<div class='altui-lasttrip-text text-muted'>{0} {1}</div>".format( timeGlyph,lasttripdate );
 		}
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_PluginDisplays.toggleDoorLock('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_PluginDisplays.toggleDoorLock('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		return html;
 	};
@@ -590,7 +653,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 		html += ALTUI_PluginDisplays.createOnOffButton( status,"altui-onoffbtn-"+device.altuiid, _T("Bypass,Arm") , "pull-right");
 		
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_PluginDisplays.togglePLEG('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_PluginDisplays.togglePLEG('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		return html;
 	};
@@ -629,7 +692,15 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 
         return html;
     };
-	
+	function _drawHouseMode( device ) {
+        var html = "";
+        var mode = parseInt(MultiBox.getStatus( device, 'urn:micasaverde-com:serviceId:HouseModes1', 'HMode' ) || '');
+		for (var i=0; i<_HouseModes.length; i++ ) {
+			if (_HouseModes[i].id==mode)
+				html +=_HouseModes[i].text;
+		}
+        return html;
+	};
 	function _drawDayTime( device ) {
 		var html = "";
         
@@ -637,7 +708,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 		html += _createOnOffButton( status,"altui-onoffbtn-"+device.altuiid, _T("Night,Day") , "pull-right");
 		
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_PluginDisplays.toggleDayTimeButton('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_PluginDisplays.toggleDayTimeButton('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		return html;
     }
@@ -805,7 +876,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 			html+= "<div class='altui-lasttrip-text text-muted'>{0} {1} </div>".format( timeGlyph,lasttripdate );
 		}
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_PluginDisplays.toggleArmed('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_PluginDisplays.toggleArmed('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
         return html;
     }
@@ -834,7 +905,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 
 		// armed
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_PluginDisplays.toggleArmed('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_PluginDisplays.toggleArmed('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		return html;
 	};
@@ -862,7 +933,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 			}
 		}
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_PluginDisplays.toggleKeypad('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_PluginDisplays.toggleKeypad('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		return html;
 	};
@@ -907,7 +978,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 		html += _createOnOffButton( status,"altui-onoffbtn-"+device.altuiid, _T("OFF,ON") , "pull-right");
 		
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_PluginDisplays.toggleOnOffButton('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_PluginDisplays.toggleOnOffButton('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		return html;
 	};
@@ -936,9 +1007,12 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 	function _drawVacation( device) {
 		var html ="";
 		var status = parseInt( MultiBox.getStatus( device, 'urn:upnp-org:serviceId:SwitchPower1', 'Status') );
-		var expiryDate =  MultiBox.getStatus( device, 'urn:futzle-com:serviceId:HolidayVirtualSwitch1', 'OverrideExpiryDate');
-		html+= "<div class='altui-watts '>{0}</div>".format( (status==1) ? _T("Holiday") : _T("Working") );
-		html+= "<div class=''>{0}</div>".format( expiryDate );
+		var expiryDate =  MultiBox.getStatus( device, 'urn:futzle-com:serviceId:HolidayVirtualSwitch1', 'OverrideExpiryDate') || "";
+		if (expiryDate.length>0)
+			expiryDate = "("+expiryDate+")"
+		var name =  MultiBox.getStatus( device, 'urn:futzle-com:serviceId:HolidayVirtualSwitch1', 'Name');
+		html+= "<div class='altui-watts '>{0} <small> {1}</small></div>".format( (status==1) ? _T("Holiday") : _T("Working") , expiryDate );
+		html+= "<div class='text-info'>{0}</div>".format( name || "");
 		return html;
 	};
 
@@ -1080,6 +1154,7 @@ var ALTUI_PluginDisplays= ( function( window, undefined ) {
 	drawMotion 	   : _drawMotion,
 	drawGCal       : _drawGCal,
 	drawCombinationSwitch	: _drawCombinationSwitch,
+	drawHouseMode: _drawHouseMode,
 	drawDayTime		: _drawDayTime,
 	drawSonos		: _drawSonos,
 	drawTempLeak	: _drawTempLeak,

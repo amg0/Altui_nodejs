@@ -9,8 +9,9 @@
 local MSG_CLASS = "ALTUI"
 local ALTUI_SERVICE = "urn:upnp-org:serviceId:altui1"
 local devicetype = "urn:schemas-upnp-org:device:altui:1"
-local DEBUG_MODE = false
-local version = "v1.18"
+local DEBUG_MODE = false	-- controlled by UPNP action
+local WFLOW_MODE = false	-- controlled by UPNP action
+local version = "v1.36"
 local UI7_JSON_FILE= "D_ALTUI_UI7.json"
 local json = require("dkjson")
 if (type(json) == "string") then
@@ -23,13 +24,27 @@ local http = require("socket.http")
 local https = require ("ssl.https")
 local ltn12 = require("ltn12")
 local modurl = require "socket.url"
+
+
 local tmpprefix = "/tmp/altui_"		-- prefix for tmp files
 local hostname = ""
 
-local DataProviders={}
+
+local DataProviders={}					-- DataProviders database
 local DataProvidersCallbacks={}		-- map names to functions in the local context, only for embedded providers registered within this module in LUA
 local remoteWatches={}
 local registeredWatches = {}
+local WorkflowsActiveState = {}	-- hash indexed by workflow altuiid
+local WorkflowsVariableBag = {}	-- hash indexed by workflow altuiid
+local Workflows = {}					-- Workflow database made from the persistent description
+local ForcedValidLinks = {}			-- array of 'id' = true for links which must be considered as true
+local strWorkflowDescription = ""
+local strWorkflowTransitionTemplate = "Wkflow - Workflow: %s, Valid Transition found:%s, Active State:%s=>%s"	-- needed for ALTUI grep & history log feature
+local Timers = {}					-- to Persist timers accross VERA reboots
+-- Timers = {
+	-- { ["id"]="toto", ["expireson"]=1234 },
+	-- { ["id"]="titi", ["expireson"]=1234 },
+-- }
 
 --calling a function from HTTP in the device context
 --http://192.168.1.5/port_3480/data_request?id=lu_action&serviceId=urn:micasaverde-com:serviceId:HomeAutomationGateway1&action=RunLua&DeviceNum=81&Code=getMapUrl(81)
@@ -52,14 +67,14 @@ local function warning(stuff)
 end
 
 local function error(stuff)
-	log("erreur: " .. stuff, 1)
+	log("error: " .. stuff, 1)
 end
 
-local function dumpString(str)
-	for i=1,str:len() do
-		debug(string.format("i:%d c:%d char:%s",i,str:byte(i),str:sub(i,i) ))
-	end
-end
+-- local function dumpString(str)
+	-- for i=1,str:len() do
+		-- debug(string.format("i:%d c:%d char:%s",i,str:byte(i),str:sub(i,i) ))
+	-- end
+-- end
 
 function string.starts(String,Start)
    return string.sub(String,1,string.len(Start))==Start
@@ -69,23 +84,10 @@ local function isempty(s)
   return s == nil or s == ''
 end
 
-function file_exists(name)
+local function file_exists(name)
    local f=io.open(name,"r")
    if f~=nil then io.close(f) return true else return false end
 end
-
-function setDebugMode(lul_device,newDebugMode)
-	lul_device = tonumber(lul_device)
-	newDebugMode = tonumber(newDebugMode) or 0
-	log(string.format("setDebugMode(%d,%d)",lul_device,newDebugMode))
-	luup.variable_set(ALTUI_SERVICE, "Debug", newDebugMode, lul_device)
-	if (newDebugMode==1) then
-		DEBUG_MODE=true
-	else
-		DEBUG_MODE=false
-	end
-end
-
 
 ---code from lolodomo DNLA plugin
 local function xml_decode(val)
@@ -109,26 +111,8 @@ local function xml_encode(val)
                 :gsub('"', "&quot;")
                 :gsub("'", "&apos;")
 end
-
--- function url_encode(str)
-  -- if (str) then
-    -- str = string.gsub (str, "\n", "\r\n")
-    -- str = string.gsub (str, "([^%w %-%_%.%~])",
-        -- function (c) return string.format ("%%%02X", string.byte(c)) end)
-    -- str = string.gsub (str, " ", "+")
-  -- end
-  -- return str	
--- end
-
--- function url_decode(str)
-  -- str = string.gsub (str, "+", " ")
-  -- str = string.gsub (str, "%%(%x%x)",
-      -- function(h) return string.char(tonumber(h,16)) end)
-  -- str = string.gsub (str, "\r\n", "\n")
-  -- return str
--- end
 	
-function findALTUIDevice()
+local function findALTUIDevice()
 	for k,v in pairs(luup.devices) do
 		if( v.device_type == devicetype ) then
 			return k
@@ -137,6 +121,908 @@ function findALTUIDevice()
 	return -1
 end
 
+local function table2params(workflowaltuiid,args)
+	local result={}
+	for k,arg in pairs(args) do
+		local res = string.gsub(arg.value or "","Bag%[\"(.-)\"%]",
+			function(w)
+				return WorkflowsVariableBag[ workflowaltuiid ][w]
+			end
+		)
+		result[ arg.name ]  = res
+		debug(string.format("Wkflow - Action Parameter: %s => %s",arg.value or "",res))
+	end
+	return result
+end
+
+------------------------------------------------
+-- Device Properties Utils
+------------------------------------------------
+
+local function getSetVariable(serviceId, name, deviceId, default)
+	local curValue = luup.variable_get(serviceId, name, deviceId)
+	if (curValue == nil) then
+		curValue = default
+		luup.variable_set(serviceId, name, curValue, deviceId)
+	end
+	return curValue
+end
+
+local function getSetVariableIfEmpty(serviceId, name, deviceId, default)
+	local curValue = luup.variable_get(serviceId, name, deviceId)
+	if (curValue == nil) or (curValue:trim() == "") then
+		curValue = default
+		luup.variable_set(serviceId, name, curValue, deviceId)
+	end
+	return curValue
+end
+
+local function setVariableIfChanged(serviceId, name, value, deviceId)
+	debug(string.format("setVariableIfChanged(%s,%s,%s,%s)",serviceId, name, value, deviceId))
+	local curValue = luup.variable_get(serviceId, name, deviceId) or ""
+	value = value or ""
+	if (tostring(curValue)~=tostring(value)) then
+		luup.variable_set(serviceId, name, value, deviceId)
+	end
+end
+
+local function setAttrIfChanged(name, value, deviceId)
+	debug(string.format("setAttrIfChanged(%s,%s,%s)",name, value, deviceId))
+	local curValue = luup.attr_get(name, deviceId)
+	if ((value ~= curValue) or (curValue == nil)) then
+		luup.attr_set(name, value, deviceId)
+		return true
+	end
+	return value
+end
+
+local function call_action(service,action,params,device)
+	debug(string.format("Wkflow - Calling Action device:%s Service:%s Action:%s Params:%s",device,service,action,json.encode(params)))
+	local resultCode, resultString, job, returnArguments =luup.call_action(service,action,params,device)
+	return resultCode, resultString, job, returnArguments
+end
+
+local function run_scene(id)
+	debug(string.format("run_scene(%s)",id or "nil"))
+    local resultCode, resultString, job, returnArguments = luup.call_action("urn:micasaverde-com:serviceId:HomeAutomationGateway1", "RunScene", {SceneNum = tostring(id)}, 0)
+	return resultCode, resultString, job, returnArguments
+end
+
+local function getDataFor( deviceID,name,prefix )
+	local prefix = prefix or "Data_"
+	debug(string.format("getDataFor(%s,%s)",name,prefix))
+	local name = prefix..name
+	name = name:gsub(" ", "+")	-- spaces are replaced by '+'
+	local num = 0
+	local var = nil
+	local result_tbl = {}
+	local result = ""
+	
+	-- search for all "Data_xxx_nnn" variables and concatenate them
+	-- debug("reading "..name.."_"..num)
+	var = luup.variable_get(ALTUI_SERVICE, name.."_"..num, deviceID) or ""
+	-- debug("var =("..var..")")
+	while( var ~= "") do
+		num = num+1
+		result_tbl[#result_tbl+1] = var
+		-- debug("reading "..name.."_"..num)
+		var = luup.variable_get(ALTUI_SERVICE, name.."_"..num, deviceID) or ""
+		-- debug("var =("..var..")")
+	end
+	result = table.concat(result_tbl)
+	if (result=="") then
+		return nil
+	end
+	debug("returning "..result)
+	return result
+end
+
+local function setDebugMode(lul_device,newDebugMode)
+	lul_device = tonumber(lul_device)
+	newDebugMode = tonumber(newDebugMode) or 0
+	log(string.format("setDebugMode(%d,%d)",lul_device,newDebugMode))
+	luup.variable_set(ALTUI_SERVICE, "Debug", newDebugMode, lul_device)
+	if (newDebugMode==1) then
+		DEBUG_MODE=true
+	else
+		DEBUG_MODE=false
+	end
+end
+
+local function getIP()
+	-- local stdout = io.popen("GetNetworkState.sh ip_wan")
+	-- local ip = stdout:read("*a")
+	-- stdout:close()
+	-- return ip
+	local mySocket = socket.udp ()  
+	mySocket:setpeername ("42.42.42.42", "424242")  -- arbitrary IP/PORT  
+	local ip = mySocket:getsockname ()  
+	mySocket: close()  
+	return ip or "127.0.0.1" 
+end
+
+local function findWatch( devid, service, variable )
+	local watch = nil
+	devid = tostring(devid)
+	debug(string.format("findWatch(%s,%s,%s)",devid, service, variable))
+	debug(string.format("registeredWatches: %s",json.encode(registeredWatches)))
+	if (registeredWatches[devid] ~= nil) and (registeredWatches[devid][service] ~= nil) and (registeredWatches[devid][service][variable] ~= nil) then
+		return registeredWatches[devid][service][variable]
+	end
+	warning(string.format("findWatch(%s,%s,%s) did not find a match",devid, service, variable))
+	return nil
+end
+
+local function _addWatch( service, variable, devid, scene, expression, xml, provider, providerparams )
+	debug(string.format("_addWatch(%s,%s,%s,%s,%s,%s,%s,%s)",service, variable, devid, scene, expression, xml or "", provider or "", json.encode(providerparams or "")))
+	local data = json.encode(providerparams)
+	local result = 1
+	devidstr = tostring(devid)	 -- to inssure it is not a indexed array , but hash table 
+	local parts = devidstr:split("-")
+	if (parts[2]==nil) then
+		devidstr = "0-"..devidstr
+		parts = devidstr:split("-")
+	end
+	local bDuplicateWatch = false
+	if (registeredWatches[devidstr] == nil) then
+		registeredWatches[devidstr]={}
+	end
+	if (registeredWatches[devidstr][service] == nil) then
+		registeredWatches[devidstr][service]={}
+	end
+	if (registeredWatches[devidstr][service][variable] == nil) then
+		registeredWatches[devidstr][service][variable] = {
+			["LastOld"] = nil,
+			["LastNew"] = nil,
+			["LastUpdate"] = nil
+		}
+	else 
+		-- a watch was already there
+		bDuplicateWatch = true
+	end
+
+	if (registeredWatches[devidstr][service][variable]['Expressions'] == nil) then
+		registeredWatches[devidstr][service][variable]['Expressions']={}
+	end
+	if (registeredWatches[devidstr][service][variable]['Expressions'][expression] == nil) then
+		registeredWatches[devidstr][service][variable]['Expressions'][expression] = {}
+	end
+
+	local n = tablelength(registeredWatches[devidstr][service][variable]['Expressions'][expression])
+
+	if (scene==-2) then
+		-- workflow watch
+		local bFound = false
+		for i=1,n do
+			if (registeredWatches[devidstr][service][variable]['Expressions'][expression][i]["WorkflowAltuiID"] == xml ) then
+				bFound = true
+			end
+		end
+		if (bFound==false) then
+			registeredWatches[devidstr][service][variable]['Expressions'][expression][n+1]= {
+				["WorkflowAltuiID"] = xml
+			}
+		end
+	else
+		-- classical watch pr
+		-- Data Push Configuration 
+		if (scene==-1) then
+			registeredWatches[devidstr][service][variable]['Expressions'][expression][1]= {
+				["LastEval"] = nil,
+				["SceneID"] = scene
+			}	
+			if (DataProviders[provider]==nil) or ( data=="" )  then
+				warning(string.format("Unknown data push provider:%s or data:%s",provider or"", data or ""))
+			end
+			if (registeredWatches[devidstr][service][variable]['DataProviders'] == nil) then
+				registeredWatches[devidstr][service][variable]['DataProviders']={}
+			end
+			if (registeredWatches[devidstr][service][variable]['DataProviders'][provider] == nil) then
+				registeredWatches[devidstr][service][variable]['DataProviders'][provider]={}
+			end
+			local n2 = tablelength(registeredWatches[devidstr][service][variable]['DataProviders'][provider])
+			local bFound = false
+			for i=1,n2 do
+				if (registeredWatches[devidstr][service][variable]['DataProviders'][provider][i]['Data']==data) then
+					bFound = true
+				end			
+			end
+			if (bFound==false) then
+				registeredWatches[devidstr][service][variable]['DataProviders'][provider][n2+1] = {
+					['Data']=data
+				}
+			end
+		else
+			local bFound = false
+			for i=1,n do
+				if (registeredWatches[devidstr][service][variable]['Expressions'][expression][i]["SceneID"] == scene ) then
+					bFound = true
+				end
+			end
+			if (bFound==false) then
+				registeredWatches[devidstr][service][variable]['Expressions'][expression][n+1]= {
+					["LastEval"] = nil,
+					["SceneID"] = scene
+				}
+			end
+		end
+	end 
+
+	if (bDuplicateWatch==true) then
+		debug(string.format("Ignoring luup.variable_watch for duplicate watch for %s-%s",service,variable))
+		result = 0
+	else
+		if (parts[1]=="0") then	 
+			-- Master Controller
+			luup.variable_watch("variableWatchCallback", service,variable,tonumber(parts[2]))
+		else
+			-- Secondary Controller
+			local extraController= getSetVariable(ALTUI_SERVICE, "ExtraController", lul_device, "")
+			local controllers = extraController:split(",")
+			local ipaddr =  controllers [ tonumber(parts[1]) ]:trim()
+			local url = string.format("http://%s/port_3480/data_request?id=lr_ALTUI_Handler&command=addRemoteWatch&device=%s&variable=%s&service=%s&ctrlid=%s&ipaddr=%s",
+				ipaddr,		-- remote ctrl ip addr
+				parts[2],	-- pure vera device id on remote controller
+				variable,	 
+				service,	
+				parts[1],	-- controller id for ALTUI
+				hostname	-- local IP address for callback
+				)
+			debug(string.format("Calling url to set remote watch. url:%s",url))
+			local httpcode,data = luup.inet.wget(url,10)
+			if (httpcode~=0) then
+				error(string.format("failed to connect to url:%s, luup.inet.wget returned %d", url,httpcode))
+				return 0
+			end
+			debug(string.format("success httpcode:%s data:%s",httpcode,data))	
+		end
+	end
+	debug(string.format("registeredWatches: %s",json.encode(registeredWatches)))
+	return result
+end
+
+--
+-- TIMERS management
+-- to persist Vera reboots
+--
+local function saveTimerDB(lul_device)
+	luup.variable_set(ALTUI_SERVICE,  "Timers", json.encode(Timers), tonumber(lul_device))
+end
+
+local function findTimerIdx( data )
+	debug(string.format("Timer - findTimerIdx(%s)", data))
+	local res = 0
+	for k,v in pairs(Timers) do
+		if (v["data"] == data ) then
+			return tonumber(k)
+		end
+	end
+	-- warning(string.format("Timer - timer not found, %s",data))
+	return tonumber(res)
+end
+
+local function setTimer( lul_device, callbackname, duration, data  )
+	debug(string.format("setTimer( %s, %s, %s, %s  )",lul_device, callbackname, duration, data))
+	-- check if timer is  already in the database
+	local idx = findTimerIdx( data )
+	if (idx>0) then
+		-- timer is already there
+		local timer = Timers[idx]
+		if ( timer["armed"] ~= true) then
+			warning(string.format("Timer - Timer is present in Timer DB , but not armed. this is ok during startup"))
+		else
+			debug(string.format("Timer - Timer is already present in Timer DB and already armed"))
+		end
+	else
+		-- not yet there, so set it now
+		local timer = {
+			["callback"]=callbackname, 
+			["expireson"]=os.time()+duration, 
+			["data"]=data,
+			["armed"]=true,
+		}
+		table.insert(Timers, timer)
+		debug(string.format("Timer - Timers DB after setTimer: %s",json.encode(Timers)))
+		saveTimerDB(lul_device)
+		luup.call_delay("TimerManagerCallback", duration, data)
+	end
+end
+
+local function processTimers(lul_device)
+	debug(string.format("Timer - processTimers(%s))", lul_device))
+	debug(string.format("Timer - processTimers Timers DB before : %s", json.encode(Timers)))
+	local res = 0
+	local tocall = {}
+	for k,v in pairs(Timers) do
+		if (v["armed"] ~= true) then
+			local now = os.time()
+			if (now > v["expireson"]) then
+				-- if timer expired, process it
+				-- do not call it as the TImerManagerCallback will modify the Timer table
+				table.insert(tocall, v["data"])
+			else
+				-- if timer did expire yet, reschedule it
+				local duration = v["expireson"] - now
+				Timers[k]["armed"]=true
+				luup.call_delay("TimerManagerCallback", duration, v["data"])
+			end
+		else
+			debug(string.format("Timer - already armed in LUA - wait for the callback "))
+		end
+	end
+	saveTimerDB(lul_device)
+	for k,v in pairs(tocall) do
+		debug(string.format("Timer - Launching the already expired timer: ", v))
+		TimerManagerCallback(v)
+	end
+	debug(string.format("Timer - processTimers Timers DB after: %s", json.encode(Timers)))
+end
+
+local function initTimers(lul_device)
+	debug(string.format("Timer - initTimers lul_device:%d ",lul_device))
+	local str = getSetVariable(ALTUI_SERVICE, "Timers", lul_device, "")
+	Timers = json.decode( str ) or {}
+	for k,v in pairs(Timers) do
+		Timers[k]["armed"] = false
+	end
+	saveTimerDB(lul_device)
+	debug(string.format("Timer - Timers %s ",json.encode(Timers)))
+end
+
+local function cancelTimer(lul_data)
+	debug(string.format("Timer - cancelTimer(%s)",lul_data))
+	local idx = findTimerIdx( lul_data )
+	if (idx>0) then
+		local parts = lul_data:split('#')
+		local timer = Timers[idx]
+		--- remove the timer from the database
+		debug( string.format("Timer - cancelling Timer:%s",json.encode(timer) ) )
+		table.remove(Timers, idx)
+		--- save the database
+		luup.variable_set(ALTUI_SERVICE,  "Timers", json.encode(Timers), tonumber(parts[1]))
+	end
+end
+
+local function cancelWorkflowTimers(lul_device,workflow_idx)
+	debug( string.format("Wkflow - cancelling all timers for workflow idx:%d",tonumber(workflow_idx) ) )
+	local to_remove={}
+	for k,v in pairs(Timers) do
+		local parts = v["data"]:split('#')	-- {lul_device,workflow_idx,stateid,targetstate,link.id}
+		if (tostring(workflow_idx) == parts[2]) then	-- same workflow
+			--- remove the timer from the database after this loop
+			debug( string.format("Timer - cancelling Timer:%s",json.encode(v) ) )
+			table.insert(to_remove,k)
+		end
+	end
+	for k,v in pairs(to_remove) do
+		table.remove(Timers, v)
+	end
+	--- save the database
+	luup.variable_set(ALTUI_SERVICE,  "Timers", json.encode(Timers), tonumber(lul_device))			
+end
+
+function TimerManagerCallback(lul_data)
+	debug(string.format("Timer - TimerManagerCallback(%s)",lul_data))
+	debug(string.format("Timer - Timers DB before callback: %s",json.encode(Timers)))
+	--- find the timer in the database
+	local idx = findTimerIdx( lul_data )
+	if (idx>0) then
+		local parts = lul_data:split('#')
+		local timer = Timers[idx]
+		local now=os.time()
+		debug(string.format("Timer - now:%s timer.expireson:%s",tostring(now),tostring(timer.expireson)))
+		if (now < timer.expireson-1) then
+			warning(string.format("Timer - receiving timer callback is earlier by more than 1 sec than planned. ignoring..."))
+			return
+		end
+		local expireson = timer.expireson
+		--- remove the timer from the database
+		table.remove(Timers, idx)
+		debug(string.format("Timer - Timers DB after callback: %s",json.encode(Timers)))
+
+		--- save the database
+		saveTimerDB( tonumber(parts[1]) )
+
+		--- execute its callback function
+		if (timer.callback == "workflowTimerCB") then
+			workflowTimerCB(lul_data)
+		elseif (timer.callback == "watchTimerCB") then
+			watchTimerCB(lul_data)
+		end
+	else
+		warning(string.format("Timer - Timer not found in Timer DB"))
+	end
+end
+
+
+------------------------------------------------
+-- Workflows
+------------------------------------------------
+
+local function getStateName(link)
+	local name = ""
+	-- Check name for Link or for START state
+	if (link.labels ~=nil ) then
+		name = link.labels[1].attrs.text.text
+	else
+		name = link.attrs[".label"].text
+	end
+	return name
+end
+
+-- get workflow description from the store variables
+local function getWorkflowsDescr(lul_device)
+	debug(string.format("Wkflow - getWorkflowsDescr(%s)",lul_device))
+	local workflowlist = getDataFor( lul_device, "Workflows", "Wflow_" ) or "{}"
+	if (workflowlist=="[]") then
+		workflowlist="{}"
+	end
+	local workflows_tbl = json.decode( workflowlist )
+	local result2_tbl ={}
+	for k,v in pairs(workflows_tbl) do
+		local data = getDataFor( lul_device, v , "Wflow_")
+		table.insert(  result2_tbl , data )
+	end
+	debug(string.format("Wkflow - getWorkflowsDescr returning %s","["..table.concat(result2_tbl, ",").."]"))
+	return "["..table.concat(result2_tbl, ",").."]"
+end
+
+local function findStartState(idx)
+	debug(string.format("Wkflow - findStartState(%d)",idx))
+	if (Workflows[idx]==nil or Workflows[idx]["graph_json"]==nil or Workflows[idx]["graph_json"].cells==nil) then
+		return nil
+	end
+	local wflow = Workflows[idx]["graph_json"]
+	for i,cell in pairs(wflow.cells) do 
+		if (cell.prop.stateinfo.bStart==true) then
+			debug(string.format("Wkflow - findStartState(%d) returns %s",idx,cell.id))
+			return cell
+		end
+	end
+	warning(string.format("Wkflow - findStartState(%d) could not find start state",idx))
+	return nil
+end
+
+local function findStartStateID(idx)
+	debug(string.format("Wkflow - findStartStateID(%d)",idx))
+	local cell = findStartState(idx)
+	if (cell~=nil) then
+		return cell.id
+	end
+	return nil
+end
+
+local function getWorkflowsStatus(lul_device)
+	return WorkflowsActiveState;
+end
+
+local function stateFromID(cells,stateID)
+	for k,cell in pairs(cells) do
+		if (cell.type~="link" and cell.id==stateID) then
+			return cell
+		end
+	end
+	return nil
+end
+local function isValidState(workflow,stateID)
+	return stateFromID(workflow["graph_json"].cells,stateID) ~= nil
+end
+local function linkFromID(cells,stateID)
+	for k,cell in pairs(cells) do
+		if (cell.type=="link" and cell.id==stateID) then
+			return cell
+		end
+	end
+	return nil
+end
+
+local function getStateTransitions(lul_device, stateid, cells )
+	debug(string.format("Wkflow - getStateTransitions(%s)",lul_device))
+	local result = {}
+	for k,cell in pairs(cells) do 
+		if (cell.type=="link" and cell.source.id==stateid ) then
+			table.insert(  result , cell )
+		end
+	end
+	debug(string.format("Wkflow - getStateTransitions(%s) returns %d transitions",lul_device,#result))
+	return result
+end
+
+local function armLinkTimersAndWatches(lul_device,workflow_idx,curstate)
+	local name = ""
+	-- Check name for Link or for START state
+	if (curstate.labels ~=nil ) then
+		name = curstate.labels[1].attrs.text.text
+	else
+		name = curstate.attrs[".label"].text
+	end
+	
+	debug(string.format("Wkflow - armLinkTimersAndWatches(%s, %s, %s ) ",lul_device, Workflows[workflow_idx].name, name))
+	local cells = Workflows[workflow_idx]["graph_json"].cells 
+	local transitions = getStateTransitions(lul_device, curstate.id, cells )
+	for k,link in pairs(transitions) do 
+		if (link.prop.timer ~= "") then
+			link.prop.expired = false
+			local tbl = {lul_device,workflow_idx,curstate.id,link.target.id,link.id}
+			debug(string.format("Wkflow - Arming Timer (%s, %s) ",lul_device, json.encode(tbl)))
+			debug(string.format("Wkflow - link props:%s",json.encode(link.prop)))
+			setTimer( lul_device, "workflowTimerCB",link.prop.duration,table.concat(tbl, "#")  )
+		end
+		-- make sure we have a watch for all the conditions
+		for c,cond in pairs(link.prop.conditions) do
+			-- table.insert(WorkflowWatches,{ cond.device, cond.service, cond.variable, cond.luaexpr })
+			_addWatch( cond.service, cond.variable, cond.device, -2, "workflow", Workflows[workflow_idx].altuiid, "", "" )
+		end		
+	end
+	-- add start state conditions
+	local cell = findStartState(workflow_idx) 
+	if (cell ~= nil and cell.prop.conditions ~= nil) then
+		for c,cond in pairs(cell.prop.conditions) do
+			-- table.insert(WorkflowWatches,{ cond.device, cond.service, cond.variable, cond.luaexpr })
+			_addWatch( cond.service, cond.variable, cond.device, -2, "workflow", Workflows[workflow_idx].altuiid, "", "" )
+		end
+	end
+end
+
+-- 
+-- Init Workflows
+-- get workflow description from the store variables
+-- prepare the watches
+-- 
+local function initWorkflows(lul_device)
+	debug(string.format("Wkflow - initWorkflows(%s)",lul_device))
+	-- get active states for persistency
+	WorkflowsActiveState = json.decode( getSetVariable(ALTUI_SERVICE, "WorkflowsActiveState", lul_device, "") ) or {}
+	WorkflowsVariableBag = json.decode( getSetVariable(ALTUI_SERVICE, "WorkflowsVariableBag", lul_device, "") ) or {}
+	debug(string.format("Wkflow - WorkflowsActiveState = %s",json.encode(WorkflowsActiveState)))
+
+	strWorkflowDescription = getWorkflowsDescr(lul_device)
+	Workflows = json.decode(strWorkflowDescription)
+	-- decode the graph json which is stored as a string inside the string
+	for k,v in pairs(Workflows) do 
+		Workflows[k]["graph_json"] = json.decode(Workflows[k]["graph_json"])
+		if (WorkflowsVariableBag[Workflows[k].altuiid]==nil) then
+			WorkflowsVariableBag[Workflows[k].altuiid] = {}
+		end
+		local last_known_active = Workflows[k]["graph_json"].active_state
+		-- if no active state or state is unknown, start from START
+		if ( (last_known_active == nil) or ( isValidState(Workflows[k],last_known_active)==false ) ) then
+			last_known_active = WorkflowsActiveState[ Workflows[k].altuiid ]
+			if ( (last_known_active == nil) or ( isValidState(Workflows[k],last_known_active)==false ) ) then
+				local state = findStartStateID(k)
+				Workflows[k]["graph_json"].active_state = state
+				WorkflowsActiveState[ Workflows[k].altuiid ] = state
+			else
+				Workflows[k]["graph_json"].active_state = last_known_active
+			end
+		else
+			-- last known active is fine
+			WorkflowsActiveState[ Workflows[k].altuiid ] = last_known_active
+		end
+	end
+
+	-- save active states for persistency
+	luup.variable_set(ALTUI_SERVICE, "WorkflowsActiveState", json.encode(WorkflowsActiveState), lul_device)
+	
+	if (WFLOW_MODE==true) then
+		-- local WorkflowWatches = {}
+		for workflow_idx,workflow in pairs(Workflows) do 
+			local curstate = stateFromID(workflow["graph_json"].cells  , Workflows[workflow_idx]["graph_json"].active_state) 
+			if (curstate == nil ) then
+				curstate  = stateFromID(workflow["graph_json"].cells  , findStartStateID(workflow_idx) )
+			end
+			armLinkTimersAndWatches(lul_device,workflow_idx,curstate)
+		end
+	end
+	-- debug(string.format("Wkflow - WorkflowWatches: %s",json.encode(WorkflowWatches)))
+	debug(string.format("Wkflow - initWorkflows:%s",json.encode(Workflows)))
+end
+
+local function findWorkflowIdx(workflowAltuiid)
+	for k,v in pairs(Workflows) do 
+		if (Workflows[k].altuiid == workflowAltuiid) then
+			return k
+		end
+	end
+	return 0
+end
+
+local function resetWorkflow(lul_device,workflowAltuiid)
+	log(string.format("Wkflow - resetWorkflow(%d,%s)",lul_device,workflowAltuiid))
+	local workflow_idx = findWorkflowIdx(workflowAltuiid)
+	if (workflow_idx>0) then
+		-- reset Timers for this workflow
+		cancelWorkflowTimers(lul_device,workflow_idx)
+		
+		-- reset active state for this workflow
+		local startid = findStartStateID(workflow_idx)
+		WorkflowsActiveState[workflowAltuiid] = startid
+		Workflows[workflow_idx]["graph_json"].active_state = startid
+		luup.variable_set(ALTUI_SERVICE, "WorkflowsActiveState", json.encode(WorkflowsActiveState), lul_device)
+		
+		-- reset workflow variables
+		WorkflowsVariableBag[workflowAltuiid] = {}
+		luup.variable_set(ALTUI_SERVICE, "WorkflowsVariableBag", json.encode(WorkflowsVariableBag), tonumber(lul_device))
+
+		-- schedule execution
+		if (WFLOW_MODE == true) then
+			-- Arm timers and exec Workflows with a delay
+			local startstate = stateFromID(Workflows[workflow_idx]["graph_json"].cells,startid)
+			armLinkTimersAndWatches(lul_device,workflow_idx,startstate)
+			luup.call_delay("executeWorkflows", 2, lul_device)
+		end
+	else
+		warning(string.format("Invalid Workflow altuiid:%s",workflowAltuiid))
+	end
+end
+
+local function triggerTransition(lul_device,workflowAltuiid,transitionId)
+	log(string.format("Wkflow - Workflow:'%s' triggerTransition(%s)",workflowAltuiid,transitionId))
+	-- force the transition to happen
+	ForcedValidLinks[transitionId] = true
+	
+	-- schedule execution
+	if (WFLOW_MODE == true) then
+		-- exec Workflows with a delay
+		luup.call_delay("executeWorkflows", 1, lul_device)
+	end
+end
+
+local function enableWorkflows(lul_device,newWorkflowMode)
+	log(string.format("Wkflow - enableWorkflows(%d,%d)",lul_device,newWorkflowMode))
+	lul_device = tonumber(lul_device)
+	newWorkflowMode = tonumber(newWorkflowMode) or 0
+
+	local currentMode = luup.variable_get(ALTUI_SERVICE, "EnableWorkflows",  lul_device)
+	setVariableIfChanged(ALTUI_SERVICE, "EnableWorkflows", newWorkflowMode, lul_device)
+	WFLOW_MODE = (newWorkflowMode == 1)
+	
+	if (WFLOW_MODE==false) then
+		-- reset Timers
+		Timers = {}
+		luup.variable_set(ALTUI_SERVICE,  "Timers", "", lul_device)
+		-- reset Active States
+		WorkflowsActiveState = {}
+		WorkflowsVariableBag = {}
+		luup.variable_set(ALTUI_SERVICE, "WorkflowsActiveState", "", lul_device)
+		luup.variable_set(ALTUI_SERVICE, "WorkflowsVariableBag", "", lul_device)
+	end
+	
+	-- init Workflows
+	initWorkflows(lul_device)	
+	
+	-- schedule execution
+	if (WFLOW_MODE == true) then
+		-- exec Workflows with a delay
+		luup.call_delay("executeWorkflows", 4, lul_device)
+	end
+end
+
+local function evaluateStateTransition(lul_device,link, workflow_idx, watchevent)
+	local name = getStateName(link)
+	debug(string.format("Wkflow - evaluateStateTransition(%s,%s,%s)",lul_device,name,workflow_idx))
+	debug(string.format("Wkflow - link props:%s",json.encode(link.prop)))
+
+	-- if scheduled and schedule has been received, then return true
+	if (ForcedValidLinks[link.id]==true) then
+		ForcedValidLinks[link.id] = nil
+		return true
+	end
+	-- otherwise check if timer expired
+	if (link.prop.timer ~= "") then
+		debug(string.format("Wkflow - link has an expired timer."))
+		local res = link.prop.expired
+		link.prop.expired = false
+		if (res==true) then
+			return true
+		end
+	end
+	-- otherwise ( not scheduled and not expired timer ) then continue to evaluates conditions
+	if (tablelength(link.prop.conditions)>0) then
+		-- conditions
+		for k,cond in pairs(link.prop.conditions) do
+			local parts = cond.device:split("-");
+			local devid = tonumber(parts[2]);
+			local new,old,lastupdate = nil,nil,nil
+			
+			if (cond.triggeronly == true) then
+				-- do not accept transition which are not coming from a trigger if the trigger only flag is set
+				debug(string.format("Wkflow - Condition is TriggerOnly and watchevent:%s",json.encode(watchevent or {})))
+				if (watchevent == nil) or (watchevent.device ~= cond.device) or (watchevent.service ~= cond.service) or(watchevent.variable ~= cond.variable) then
+					debug(string.format("Wkflow - Trigger does not match condition:%s",json.encode(cond)))
+					return false
+				end
+				-- must be the same device service variable, otherwise, reject
+				new,old,lastupdate = watchevent.watch["LastNew"],watchevent.watch["LastOld"],watchevent.watch["LastUpdate"]
+			else
+				-- evaluate in real time
+				debug("Wkflow - Condition is evaluated in real time - no TriggerOnly")
+				new,old,lastupdate = luup.variable_get(cond.service, cond.variable, devid ) , "" , os.time()
+			end
+			local results = _evaluateUserExpression(devid, cond.service, cond.variable,old,new,lastupdate,cond.luaexpr,workflow_idx) 	
+			local res,delay = results[1], results[2] or nil
+			if (  res ~= true) then
+				return false
+			end			
+		end
+		return true	-- logical AND of all expressions
+	end
+	return false
+end
+
+-- "onEnter": [
+  -- {
+	-- "device": "0-6",
+	-- "service": "urn:upnp-org:serviceId:SwitchPower1",
+	-- "action": "SetTarget",
+	-- "arguments": [
+	  -- {
+		-- "name": "newTargetValue",
+		-- "value": "0"
+	  -- }
+	-- ]
+  -- }
+-- ],
+
+local function executeStateLua(lul_device,workflow_idx,state,label)
+	debug(string.format("Wkflow - Workflow:'%s' executeStateLua(%s, %s, %s) ",Workflows[workflow_idx].name, state.attrs[".label"].text,label,label))
+	local  lua = state.prop[label] or ""
+	if (lua:len()>0) then
+		debug(string.format("Wkflow - %s Lua code=%s",label,lua))
+		local f,msg = loadstring(lua)
+		if (f==nil) then
+			error(string.format("Wkflow - loadstring %s failed to compile, msg=%s",lua,msg))
+		else
+			local env = { Bag = WorkflowsVariableBag[ Workflows[workflow_idx].altuiid ] }
+			setfenv(f, setmetatable (env, {__index = _G, __newindex = _G}))
+			local status,res= pcall(  f )
+			
+			-- results = func(lul_device, lul_service, lul_variable,expr)
+			if (status==true) then
+				WorkflowsVariableBag[ Workflows[workflow_idx].altuiid ] = env.Bag
+				luup.variable_set(ALTUI_SERVICE, "WorkflowsVariableBag", json.encode(WorkflowsVariableBag), tonumber(lul_device))
+				debug(string.format("Wkflow - Lua code res:%s, Bag=%s",tostring(res),json.encode(WorkflowsVariableBag[ Workflows[workflow_idx].altuiid ])))
+			else
+				error(string.format("Wkflow - Lua code Exception occured, Err Msg: %s",res))
+			end
+		end
+	end
+end
+
+local function executeStateScenes(lul_device,workflow_idx,state,label)
+	debug(string.format("Wkflow - Workflow:'%s' executeStateScenes(%s, %s) ",Workflows[workflow_idx].name, state.attrs[".label"].text,label))
+	debug(string.format("state.prop %s",json.encode(state.prop)))
+	for k,scene in pairs( state.prop[label] or {} ) do
+		local parts = scene.altuiid:split("-")
+		local scene_res =run_scene(parts[2])
+		if (scene_res==-1) then
+			error(string.format("Failed to run the scene %s",scene.altuiid))
+		end
+	end
+end
+
+local function executeStateActions(lul_device,workflow_idx,state,label)
+	debug(string.format("Wkflow - Workflow:'%s' executeStateActions(%s, %s) ", Workflows[workflow_idx].name, state.attrs[".label"].text,label))
+	debug(string.format("state.prop %s",json.encode(state.prop)))
+	for k,action in pairs( state.prop[label] or {} ) do
+		local parts = action.device:split("-")
+		local params = table2params(Workflows[workflow_idx].altuiid, action.arguments)
+		call_action(action.service,action.action,params,tonumber(parts[2]))
+	end
+end
+
+local function nextWorkflowState(lul_device,workflow_idx,oldstate, newstate)
+	if (WFLOW_MODE==true) and (newstate.id ~= oldstate.id ) then
+		debug(string.format("Wkflow - Workflow:'%s' nextWorkflowState(%s, %s ==> %s) ", Workflows[workflow_idx].name,Workflows[workflow_idx].altuiid, oldstate.attrs[".label"].text,newstate.attrs[".label"].text))
+		-- execute onExit of old state
+		executeStateActions(lul_device,workflow_idx,oldstate,"onExit")
+		executeStateScenes(lul_device,workflow_idx,oldstate,"onExitScenes")
+		executeStateLua(lul_device,workflow_idx,oldstate,"onExitLua")
+
+		-- change active state
+		Workflows[workflow_idx]["graph_json"].active_state = newstate.id
+		WorkflowsActiveState[ Workflows[workflow_idx].altuiid ] = newstate.id
+		luup.variable_set(ALTUI_SERVICE, "WorkflowsActiveState", json.encode(WorkflowsActiveState), tonumber(lul_device))
+		debug(string.format("Wkflow - setting new active state: %s, %s",newstate.id, newstate.attrs[".label"].text))
+
+		-- execute onEnter of new state
+		executeStateActions(lul_device,workflow_idx,newstate,"onEnter")
+		executeStateScenes(lul_device,workflow_idx,newstate,"onEnterScenes")
+		executeStateLua(lul_device,workflow_idx,newstate,"onEnterLua")
+		armLinkTimersAndWatches(lul_device,workflow_idx,newstate)
+
+		-- let some time pass up so that actions can be executed, then re-evaluate the workflow
+		luup.call_delay("executeWorkflows", 4, lul_device)
+	end
+end
+
+local function evalWorkflowState(lul_device, workflow_idx, watchevent )
+	debug(string.format("Wkflow - evalWorkflowState(%s, %s), workflow:%s",lul_device, workflow_idx, Workflows[workflow_idx].name))
+	local stateid = Workflows[workflow_idx]["graph_json"].active_state 
+	local cells = Workflows[workflow_idx]["graph_json"].cells 
+	local oldstate = stateFromID(cells,stateid)
+	debug(string.format("Wkflow - active state:%s, %s",stateid,oldstate.attrs[".label"].text))
+	
+	-- add start state conditions. Start State is like a link object and has same properties as a link
+	-- if workflow is paused, or if Start transitions are matching, move to start
+	local start = findStartState(workflow_idx) 
+	if ( (Workflows[workflow_idx].paused==true) or (evaluateStateTransition(lul_device,start,workflow_idx,watchevent)) ) then
+		--- reset workflow to START state
+		log(string.format(strWorkflowTransitionTemplate, Workflows[workflow_idx].altuiid, "Reset to Start", oldstate.attrs[".label"].text, start.attrs[".label"].text));
+		nextWorkflowState( lul_device, workflow_idx, oldstate, start)
+		return true
+	end
+	
+	local transitions = getStateTransitions(lul_device, stateid, cells )
+	for k,link in pairs(transitions) do 
+		if (evaluateStateTransition(lul_device,link,workflow_idx,watchevent)) then
+			-- possible target state
+			local targetstate = stateFromID(cells,link.target.id)
+			
+			-- cancel link timer if needed as the link could have both conditions which fired TRUE and a timer
+			if (link.prop.timer ~= "") then
+				local tbl = {lul_device,workflow_idx,stateid,targetstate,link.id}
+				cancelTimer( table.concat(tbl, "#") )
+			end
+		
+			log(string.format(strWorkflowTransitionTemplate, Workflows[workflow_idx].altuiid, link.labels[1].attrs.text.text, oldstate.attrs[".label"].text, targetstate.attrs[".label"].text));
+			nextWorkflowState( lul_device, workflow_idx, oldstate, targetstate )
+			return true;	-- todo
+		end
+	end
+	debug(string.format("Wkflow - No valid transition found"));
+	return false;
+end
+
+function workflowTimerCB(lul_data)
+	if (WFLOW_MODE==true) then
+		log(string.format("Wkflow - workflowTimerCB(%s)",lul_data))
+		local parts = lul_data:split('#')
+		local lul_device,workflow_idx,timerstateid,targetstateid,linkid = parts[1],tonumber(parts[2]),parts[3],parts[4],parts[5]
+
+		-- is workflow paused ?
+		if (Workflows[workflow_idx].paused == true) then
+			warning(string.format("Wkflow - %s paused, ignoring timer",Workflows[workflow_idx].name))
+			return
+		end
+		
+		-- is timer obsolete ?
+		-- are we still in the same state ?
+		local active_state = Workflows[workflow_idx]["graph_json"].active_state 	-- id of active state
+		debug(string.format("Wkflow - %s, active state:%s timerstate:%s",Workflows[workflow_idx].name,active_state,timerstateid))
+		if (active_state == timerstateid) then
+			-- if yes, execute link transition
+			local cells = Workflows[workflow_idx]["graph_json"].cells  
+			local link = linkFromID(cells,linkid)
+			link.prop.expired = true
+			local oldstate = stateFromID(cells,active_state)
+			local targetstate = stateFromID(cells,targetstateid)
+			debug(string.format("Wkflow - link prop:%s",json.encode(link.prop)))
+			log(string.format(strWorkflowTransitionTemplate, Workflows[workflow_idx].altuiid, "Timer:"..getStateName(link), oldstate.attrs[".label"].text, targetstate.attrs[".label"].text));
+			nextWorkflowState( lul_device, workflow_idx, oldstate, targetstate )
+		else
+			warning(string.format("Wkflow - Timer - Timer ignored, active state is different from the timer state"))
+		end
+	end
+end
+
+-- not local as used in luup.call_delay
+function executeWorkflows(lul_device , watchevent )
+	if (WFLOW_MODE==true) then
+		debug(string.format("Wkflow - executeWorkflows(%s)",lul_device))
+		for k,v in pairs(Workflows) do 
+			evalWorkflowState( lul_device, k , watchevent )
+		end
+		-- all evaluated, so now reset  any forced valid link to {}
+		ForcedValidLinks={}
+		return
+	end
+	warning(string.format("Wkflow - executeWorkflows ignored, WFLOW_MODE disabled"))
+end
+
+--
+-- MULTI Controller management
+--
 function proxyGet(lul_device,newUrl,resultName)
 	debug(string.format("proxyGet lul_device:%d newUrl:%s",lul_device,newUrl))	
 	local httpcode,data = luup.inet.wget(newUrl,10)
@@ -252,18 +1138,6 @@ local function checkVersion(lul_device)
 		luup.attr_set("device_json", UI7_JSON_FILE, lul_device)
 		luup.reload()
 	end
-end
-
-local function getIP()
-	-- local stdout = io.popen("GetNetworkState.sh ip_wan")
-	-- local ip = stdout:read("*a")
-	-- stdout:close()
-	-- return ip
-	local mySocket = socket.udp ()  
-	mySocket:setpeername ("42.42.42.42", "424242")  -- arbitrary IP/PORT  
-	local ip = mySocket:getsockname ()  
-	mySocket: close()  
-	return ip or "127.0.0.1" 
 end
 
 local function getSysinfo(ip)
@@ -446,53 +1320,6 @@ local function getForEachChildren(parent, func, param )
 end
 
 ------------------------------------------------
--- Device Properties Utils
-------------------------------------------------
-
-local function getSetVariable(serviceId, name, deviceId, default)
-	local curValue = luup.variable_get(serviceId, name, deviceId)
-	if (curValue == nil) then
-		curValue = default
-		luup.variable_set(serviceId, name, curValue, deviceId)
-	end
-	return curValue
-end
-
-local function getSetVariableIfEmpty(serviceId, name, deviceId, default)
-	local curValue = luup.variable_get(serviceId, name, deviceId)
-	if (curValue == nil) or (curValue:trim() == "") then
-		curValue = default
-		luup.variable_set(serviceId, name, curValue, deviceId)
-	end
-	return curValue
-end
-
-local function setVariableIfChanged(serviceId, name, value, deviceId)
-	debug(string.format("setVariableIfChanged(%s,%s,%s,%s)",serviceId, name, value, deviceId))
-	local curValue = luup.variable_get(serviceId, name, deviceId) or ""
-	value = value or ""
-	if (tostring(curValue)~=tostring(value)) then
-		luup.variable_set(serviceId, name, value, deviceId)
-	end
-end
-
-local function setAttrIfChanged(name, value, deviceId)
-	debug(string.format("setAttrIfChanged(%s,%s,%s)",name, value, deviceId))
-	local curValue = luup.attr_get(name, deviceId)
-	if ((value ~= curValue) or (curValue == nil)) then
-		luup.attr_set(name, value, deviceId)
-		return true
-	end
-	return value
-end
-
-local function run_scene(id)
-	debug(string.format("run_scene(%s)",id or "nil"))
-    local resultCode, resultString, job, returnArguments = luup.call_action("urn:micasaverde-com:serviceId:HomeAutomationGateway1", "RunScene", {SceneNum = tostring(id)}, 0)
-	return resultCode, resultString, job, returnArguments
-end
-
-------------------------------------------------
 -- HOUSE MODE
 ------------------------------------------------
 -- 1 = Home
@@ -528,13 +1355,14 @@ end
 -- Get user_data
 ------------------------------------------------
 local function getFirstUserData()
-	local url_req = "http://127.0.0.1:3480/data_request?id=user_data&output_format=json"
-	local req_status, req_result = luup.inet.wget(url_req)
-	if (req_status~=0) then
-		debug(string.format("getScriptContent(%s) failed, returns: %s",filename,req_status))
-		return ""
-	end
-	return req_result
+	-- local url_req = "http://127.0.0.1:3480/data_request?id=user_data&output_format=json"
+	-- local req_status, req_result = luup.inet.wget(url_req)
+	-- if (req_status~=0) then
+		-- debug(string.format("getScriptContent(%s) failed, returns: %s",filename,req_status))
+		-- return ""
+	-- end
+	-- return req_result
+	return "{}"
 end
 
 ------------------------------------------------
@@ -553,33 +1381,6 @@ local function getScriptContent( filename )
 	return req_result
 end
 
-local function getDataFor( deviceID,name )
-	debug("getDataFor("..name..")")
-	local name = "Data_"..name
-	name = name:gsub(" ", "+")	-- spaces are replaced by '+'
-	local num = 0
-	local var = nil
-	local result = ""
-	
-	-- search for all "Data_xxx_nnn" variables and concatenate them
-	-- debug("reading "..name.."_"..num)
-	var = luup.variable_get(ALTUI_SERVICE, name.."_"..num, deviceID) or ""
-	-- debug("var =("..var..")")
-	while( var ~= "") do
-		num = num+1
-		result = result .. var
-		-- debug("reading "..name.."_"..num)
-		var = luup.variable_get(ALTUI_SERVICE, name.."_"..num, deviceID) or ""
-		-- debug("var =("..var..")")
-	end
-	
-	if (result=="") then
-		return nil
-	end
-	debug("returning "..result)
-	return result
-end
-
 ------------------------------------------------------------------------------------------------
 -- Http handlers : Communication FROM ALTUI
 -- http://192.168.1.5:3480/data_request?id=lr_ALTUI_Handler&command=xxx
@@ -596,12 +1397,15 @@ end
 
 local htmlLocalScripts = [[
     <script src="@localcdn@/jquery.min.js"></script>
+    <script src="@localcdn@/lodash.min.js"></script>
 	<script src="@localcdn@/bootstrap.min.js"></script>
     <script src="@localcdn@/jquery-ui.min.js"></script> 
     <script src="@localcdn@/jquery.bootgrid.min.js"></script> 	
     <script src="@localcdn@/jsapi.js"></script> 	
 	<script src="@localcdn@/spectrum.min.js"></script>
 	<script src="J_ALTUI_utils.js" ></script>
+	<script src="J_ALTUI_api.js" ></script>
+	<script src="J_ALTUI_upnp.js" ></script>
 	<script src="J_ALTUI_verabox.js" ></script> 
 	<script src="J_ALTUI_multibox.js" ></script> 
 	<script src="J_ALTUI_uimgr.js" defer ></script> 
@@ -610,6 +1414,7 @@ local htmlLocalScripts = [[
 
 local htmlScripts = [[
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js" ></script>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.min.js"></script>
 	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" ></script>
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js" ></script> 
     <script src="//cdnjs.cloudflare.com/ajax/libs/jquery-bootgrid/1.3.1/jquery.bootgrid.min.js" defer></script> 	
@@ -657,11 +1462,12 @@ local htmlLayout = [[
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<link rel="icon" type="image/png" href="@favicon@" />
 	<!-- Latest compiled and minified CSS -->
 
 	@csslinks@
 	@style@
-    <title>VERA AltUI</title>
+    <title>AltUI</title>
 </head>
 
 <body role="document">
@@ -717,6 +1523,7 @@ local htmlLayout = [[
 		};
 		var g_DeviceTypes =  JSON.parse('@devicetypes@');
 		var g_CustomPages = @custompages@;
+		var g_Workflows = @workflows@;
 		var g_CustomTheme = '@ThemeCSS@';
 		var g_OrgTheme = g_CustomTheme;
 		var g_MyDeviceID = @mydeviceid@;
@@ -836,18 +1643,6 @@ local function addRemoteWatch(lul_device,service,variable,devid,ctrlid,ipaddr)
 	return "ok"
 end
 
-function findWatch( devid, service, variable )
-	local watch = nil
-	devid = tostring(devid)
-	debug(string.format("findWatch(%s,%s,%s)",devid, service, variable))
-	debug(string.format("registeredWatches: %s",json.encode(registeredWatches)))
-	if (registeredWatches[devid] ~= nil) and (registeredWatches[devid][service] ~= nil) and (registeredWatches[devid][service][variable] ~= nil) then
-		return registeredWatches[devid][service][variable]
-	end
-	warning(string.format("findWatch(%s,%s,%s) did not find a match",devid, service, variable))
-	return nil
-end
-
 function remoteVariableWatchCallback(lul_device, lul_service, lul_variable, lul_value_old, lul_value_new)
 	debug(string.format("remoteVariableWatchCallback(%s,%s,%s,%s,%s)",lul_device, lul_service, lul_variable, lul_value_old, lul_value_new))
 	debug(string.format("remoteWatches:%s",json.encode(remoteWatches)))
@@ -929,12 +1724,12 @@ function myALTUI_LuaRunHandler(lul_request, lul_parameters, lul_outputformat)
 end
 
 function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
-	log('ALTUI_Handler: request is: '..tostring(lul_request))
-	log('ALTUI_Handler: parameters is: '..json.encode(lul_parameters))
-	log('ALTUI_Handler: outputformat is: '..json.encode(lul_outputformat))
+	debug('myALTUI_Handler: request is: '..tostring(lul_request))
+	debug('myALTUI_Handler: parameters is: '..json.encode(lul_parameters))
+	-- debug('ALTUI_Handler: outputformat is: '..json.encode(lul_outputformat))
 	local lul_html = "";	-- empty return by default
 	local mime_type = "";
-	debug("hostname="..hostname)
+	-- debug("hostname="..hostname)
 	if (hostname=="") then
 		hostname = getIP()
 		debug("now hostname="..hostname)
@@ -952,12 +1747,6 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 	
 	-- switch table
 	local action = {
-		-- ["isregistered"] = 
-			-- function(params)
-				-- local success,response = isRegisteredSmartPhone(deviceID)
-				-- local result = (success==true) and (response=="<executionStatus>0</executionStatus>")
-				-- return json.encode( result )
-			-- end,
 		["home"] = 
 			function(params)
 				local result = luup.variable_get(ALTUI_SERVICE, "PluginConfig", deviceID)
@@ -966,6 +1755,7 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 					["controllerType"] = "V",
 					["ui7Check"] = luup.variable_get(ALTUI_SERVICE, "UI7Check", deviceID) or "",
 					["debug"] = DEBUG_MODE,
+					["workflow"] = WFLOW_MODE,
 					["PluginVersion"] = luup.variable_get(ALTUI_SERVICE, "Version", deviceID) or "",
 					["RemoteAccess"] = luup.variable_get(ALTUI_SERVICE, "RemoteAccess", deviceID) or ""
 				}
@@ -986,37 +1776,35 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 					loaded[scripts[idx]]=true
 					idx = idx+1
 				end
-				for k,v in pairs(tbl) do	
-					if (v["ScriptFile"]  ~= nil) then
-						if (loaded[v["ScriptFile"]]~=true)  then
-							scripts[idx] = v["ScriptFile"]
-							loaded[v["ScriptFile"]]=true
-							idx = idx + 1
-						end
-						if (v["StyleFunc"]  ~= nil) then
-							styles[v["ScriptFile"]] = v["StyleFunc"]
-						end
-					end
-				end			
+
+				--------------------------------
+				-- preload scripts of pluigins
+				--------------------------------
+				-- for k,v in pairs(tbl) do	
+					-- if (v["ScriptFile"]  ~= nil) then
+						-- if (loaded[v["ScriptFile"]]~=true)  then
+							-- scripts[idx] = v["ScriptFile"]
+							-- loaded[v["ScriptFile"]]=true
+							-- idx = idx + 1
+						-- end
+						-- if (v["StyleFunc"]  ~= nil) then
+							-- styles[v["ScriptFile"]] = v["StyleFunc"]
+						-- end
+					-- end
+				-- end			
 
 				if (lang=="") then
 					lang="en"
 				end
+				--------------------------------
+				-- preload scripts of ALTUI
+				--------------------------------
 				for k,v in pairs({"J_ALTUI_jquery.ui.touch-punch.min.js","J_ALTUI_b_blockly_compressed.js","J_ALTUI_b_blocks_compressed.js","J_ALTUI_b_"..lang..".js","J_ALTUI_b_javascript_compressed.js","J_ALTUI_b_lua_compressed.js"}) do
 					scripts[idx] = v
 					loaded[scripts[idx]]=true
 					idx = idx+1
 				end							
 							
-				-- scripts[idx] = "J_ALTUI_verabox.js"
-				-- loaded[scripts[idx]]=true
-				-- idx = idx+1
-				-- scripts[idx] = "J_ALTUI_multibox.js"
-				-- loaded[scripts[idx]]=true
-				-- idx = idx+1
-				-- scripts[idx] = "J_ALTUI_uimgr.js"
-				-- loaded[scripts[idx]]=true
-				-- idx = idx+1
 				local optional_scripts=""
 				for i = 1,#scripts do
 					local str = getScriptContent(scripts[i])
@@ -1040,11 +1828,13 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 					local data = getDataFor( deviceID, v )
 					table.insert(  result_tbl , data )
 				end
+				
 				-- local custompages = luup.variable_get(ALTUI_SERVICE, "CustomPages", deviceID) or "[]"
 				-- custompages = string.gsub(custompages,"'","\\x27")
 				-- custompages = string.gsub(custompages,"\"","\\x22")
 				local serverOptions= getSetVariable(ALTUI_SERVICE, "ServerOptions", deviceID, "")	
 				local localcdn = getSetVariable(ALTUI_SERVICE, "LocalCDN", deviceID, "")
+				local favicon = getSetVariable(ALTUI_SERVICE, "FavIcon", deviceID, "/favicon.ico")
 				local localbootstrap = getSetVariable(ALTUI_SERVICE, "LocalBootstrap", deviceID, "")
 				if (localbootstrap == "") then	
 					localbootstrap=defaultBootstrapPath
@@ -1052,9 +1842,11 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 				local variables={}
 				variables["hostname"] = hostname
 				variables["localcdn"] = localcdn
+				variables["favicon"] = favicon
 				variables["localbootstrap"] = localbootstrap
 				variables["devicetypes"] = json.encode(tbl)
 				variables["custompages"] = "["..table.concat(result_tbl, ",").."]"
+				variables["workflows"] = strWorkflowDescription
 				variables["ThemeCSS"] = luup.variable_get(ALTUI_SERVICE, "ThemeCSS", deviceID) or ""
 				variables["ServerOptions"] = serverOptions
 				variables["style"] = htmlStyle
@@ -1078,8 +1870,10 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 				local name = lul_parameters["name"]
 				local npage = lul_parameters["npage"]
 				local data = lul_parameters["data"]
+				local prefix = lul_parameters["prefix"] or "Data"
+				prefix = prefix .. "_"
 				debug(string.format("ALTUI_Handler: save_data( name:%s npage:%s)",name,npage))
-				local variablename = "Data_"..name.."_"..npage
+				local variablename = prefix..name.."_"..npage
 				if (data=="") then
 					debug(string.format("ALTUI_Handler: save_data( ) - Empty data",name,npage))
 					luup.variable_set(ALTUI_SERVICE, variablename, "", deviceID)
@@ -1097,13 +1891,15 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 			function(params)
 				local name = lul_parameters["name"]
 				local npage = lul_parameters["npage"]
-				local variablename = "Data_"..name.."_"..npage
+				local prefix = lul_parameters["prefix"] or "Data"
+				prefix = prefix .. "_"
+				local variablename = prefix..name.."_"..npage
 				-- cleanup all found data until we find
 				local var = luup.variable_get(ALTUI_SERVICE, variablename,  deviceID)
 				while ((var ~= nil) and (var ~="" )) do
 					luup.variable_set(ALTUI_SERVICE, variablename, "", deviceID)
 					npage = npage + 1
-					variablename = "Data_"..name.."_"..npage
+					variablename = prefix..name.."_"..npage
 					var = luup.variable_get(ALTUI_SERVICE, variablename,  deviceID)
 				end
 				return "ok", "text/plain"
@@ -1137,6 +1933,14 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 			function(params)	-- return the data providers database in JSON
 				debug(string.format("DataProviders:%s",json.encode(DataProviders)))
 				return  json.encode(DataProviders), "application/json"
+			end,
+		["getWorkflowsStatus"] = 
+			function(params)	-- return the data providers database in JSON
+				return  json.encode( {states=WorkflowsActiveState,bags=WorkflowsVariableBag} ), "application/json"
+			end,
+		["getWorkflowsBag"] = 
+			function(params)	-- return the data providers database in JSON
+				return  json.encode(WorkflowsVariableBag), "application/json"
 			end,
 		["datapush"] = 
 			function(params)	-- return the data providers database in JSON
@@ -1317,7 +2121,9 @@ function myALTUI_Handler(lul_request, lul_parameters, lul_outputformat)
 	}
 	-- actual call
 	lul_html , mime_type = switch(command,action)(lul_parameters)
-	debug(string.format("lul_html:%s",lul_html or ""))
+	if (command ~= "home") and (command ~= "oscommand") then
+		debug(string.format("lul_html:%s",lul_html or ""))
+	end
 	return (lul_html or "") , mime_type
 end
 
@@ -1399,6 +2205,14 @@ local function getDefaultConfig()
 		["ScriptFile"]="J_ALTUI_plugins.js",
 		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawDimmableRGB",
 	}
+	tbl["urn:schemas-micasaverde-com:device:PhilipsHueLuxLamp:1"]= {
+		["ScriptFile"]="J_ALTUI_plugins.js",
+		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawDimmable",
+	}
+	tbl["urn:schemas-micasaverde-com:device:PhilipsHueLamp:1"]= {
+		["ScriptFile"]="J_ALTUI_plugins.js",
+		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawDimmable",
+	}
 	tbl["urn:schemas-micasaverde-com:device:MotionSensor:1"]= {
 		["ScriptFile"]="J_ALTUI_plugins.js",
 		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawMotion",
@@ -1443,6 +2257,7 @@ local function getDefaultConfig()
 	tbl["urn:schemas-upnp-org:device:altui:1"]= {
 		["ScriptFile"]="J_ALTUI_iphone.js",
 		["DeviceDrawFunc"]="ALTUI_IPhoneLocator.drawAltUI",
+		["ControlPanelFunc"]="ALTUI_IPhoneLocator.drawAltUIControlPanel",
 	}
 	tbl["urn:schemas-futzle-com:device:holidayvirtualswitch:1"]= {
 		["ScriptFile"]="J_ALTUI_plugins.js",
@@ -1461,12 +2276,10 @@ local function getDefaultConfig()
 	tbl["urn:schemas-upnp-org:device:IPX800:1"]= {
 		["ScriptFile"]="J_ALTUI_iphone.js",
 		["DeviceDrawFunc"]="ALTUI_IPhoneLocator.drawIPX"
-		-- ["ControlPanelFunc"]="ALTUI_IPhoneLocator.drawControlPanel",
 	}
 	tbl["urn:schemas-rts-services-com:device:ProgramLogicEG:1"]= {
 		["ScriptFile"]="J_ALTUI_plugins.js",
 		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawPLEG",
-		-- ["ControlPanelFunc"]="ALTUI_IPhoneLocator.drawControlPanel",
 	}
 	tbl["urn:schemas-utz-com:device:GCal:1"]= {
 		["ScriptFile"]="J_ALTUI_plugins.js",
@@ -1475,6 +2288,10 @@ local function getDefaultConfig()
 	tbl["urn:schemas-futzle-com:device:CombinationSwitch:1"]= {
 		["ScriptFile"]="J_ALTUI_plugins.js",
 		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawCombinationSwitch"
+	}
+	tbl["urn:schemas-micasaverde-com:device:HouseModes:1"]= {
+		["ScriptFile"]="J_ALTUI_plugins.js",
+		["DeviceDrawFunc"]="ALTUI_PluginDisplays.drawHouseMode"
 	}
 	tbl["urn:schemas-rts-services-com:device:DayTime:1"]= {
 		["ScriptFile"]="J_ALTUI_plugins.js",
@@ -1553,8 +2370,9 @@ local function sendValuetoUrlStorage(url,watch_description,lul_device, lul_servi
 		i=i+1
 	end
 	
-	-- adding device name
-	local devicename = luup.attr_get ('name', lul_device)
+	-- adding device 
+	local parts = lul_device:split("-")
+	local devicename = luup.attr_get ('name', tonumber(parts[2] or lul_device ))
 	params[#params+1] = ("name" .. "=" .. modurl.escape(devicename or ''))
 	-- if finish by ? or by & just add to it
 	-- if does not contain ?, then add ? then params
@@ -1669,7 +2487,17 @@ function resetDevice(lul_device,norepeat)
 	local default = json.encode( tbl )
 	debug(string.format("Reseting ALTUI config to %s",default))
 	setVariableIfChanged(ALTUI_SERVICE, "PluginConfig", default, lul_device)
-	
+
+	-- reset workflows and timers
+	Workflows = {}
+	WorkflowsActiveState = {}
+	WorkflowsVariableBag = {}
+	ForcedValidLinks = {}
+	Timers = {}
+	luup.variable_set(ALTUI_SERVICE, "WorkflowsActiveState", json.encode(WorkflowsActiveState), lul_device)
+	luup.variable_set(ALTUI_SERVICE, "WorkflowsVariableBag", json.encode(WorkflowsVariableBag), lul_device)
+	luup.variable_set(ALTUI_SERVICE,  "Timers", "", lul_device)
+
 	debug("Forcing a Luup reload")
 	local httpcode,data = luup.inet.wget("http://localhost:3480/data_request?id=reload",10)
 end
@@ -1737,7 +2565,7 @@ function timeOf(timestamp)
   return os.difftime(timestamp,t2)
 end
 
-function _evaluateUserExpression(lul_device, lul_service, lul_variable,old,new,lastupdate,expr)
+function _evaluateUserExpression(lul_device, lul_service, lul_variable,old,new,lastupdate,expr,opt_wkflowidx)
 	debug(string.format("_evaluateUserExpression(%s,%s,%s,%s,%s,%s,%s)",lul_device, lul_service, lul_variable,old,new,tostring(lastupdate),expr))
 	local results = {}
 	local code = [[
@@ -1755,9 +2583,30 @@ function _evaluateUserExpression(lul_device, lul_service, lul_variable,old,new,l
 	if (f==nil) then
 		error(string.format("loadstring %s failed to compile, msg=%s",code,msg))
 	else
+		-- set Environment
+		local env = {}
+		if (opt_wkflowidx~=nil) then
+			env = { Bag = WorkflowsVariableBag[ Workflows[opt_wkflowidx].altuiid ] }
+		end
+		setfenv(f, setmetatable (env, {__index = _G, __newindex = _G}))
 		local func = f()	-- call it
-		results = func(lul_device, lul_service, lul_variable,expr)
-		debug(string.format("Evaluation of user watch expression returned: %s",json.encode(results)))
+		local status=false
+
+		-- Call it now
+		setfenv(func, setmetatable (env, {__index = _G, __newindex = _G}))
+		status,results = pcall( func, lul_device, lul_service, lul_variable,expr )
+
+		if (status==true) then
+			-- update from Environment
+			if (opt_wkflowidx~=nil) then
+				WorkflowsVariableBag[ Workflows[opt_wkflowidx].altuiid ] = env.Bag
+				luup.variable_set(ALTUI_SERVICE, "WorkflowsVariableBag", json.encode(WorkflowsVariableBag), lul_device)
+			end
+			debug(string.format("Evaluation of user watch expression returned: %s",json.encode(results)))
+		else
+			debug(string.format("Exception occured, Err Msg: %s",results))
+			results = { false }
+		end
 	end
 	return results
 end
@@ -1791,7 +2640,7 @@ function evaluateExpression(watch,lul_device, lul_service, lul_variable,expr,old
 		return
 	end
 	
-	local results = _evaluateUserExpression(lul_device, lul_service, lul_variable,old,new,lastupdate,expr)
+	local results = _evaluateUserExpression(lul_device, lul_service, lul_variable,old,new,lastupdate,expr,nil)
 	local res,delay = results[1], results[2] or nil
 	
 	-- if it evaluates as FALSE , do not do anything & cancel timer
@@ -1833,7 +2682,7 @@ function evaluateExpression(watch,lul_device, lul_service, lul_variable,expr,old
 end
 
 function _internalVariableWatchCallback(lul_device, lul_service, lul_variable, lul_value_old, lul_value_new)
-	debug(string.format("_internalVariableWatchCallback(%s,%s,%s,old:'%s',new:'%s')",lul_device, lul_service, lul_variable, lul_value_old, lul_value_new))
+	debug(string.format("_internalVariableWatchCallback(%s,%s,%s,old:'%s',new:'%s') - (Wkflow)",lul_device, lul_service, lul_variable, lul_value_old, lul_value_new))
 	local watch = findWatch( lul_device, lul_service, lul_variable )
 	if (watch==nil) or (watch['Expressions']==nil )then
 		warning(string.format("ignoring unexpected watch callback, variableWatchCallback(%s,%s,%s,old:'%s',new:'%s')",lul_device, lul_service, lul_variable, lul_value_old, lul_value_new))
@@ -1844,11 +2693,16 @@ function _internalVariableWatchCallback(lul_device, lul_service, lul_variable, l
 		watch["LastUpdate"] = os.time()
 		debug(string.format("-----> evaluateExpression() %s",json.encode(watch['Expressions'] )))
 		for k,v  in pairs(watch['Expressions'] or {}) do
-			-- watch['Expressions'][k] is a table of object 		{ ["LastEval"] = nil, ["SceneID"] = scene }
-			-- v is an object
-			for exp_index,target in ipairs(watch['Expressions'][k]) do
-				watch['Expressions'][k][exp_index]["LastEval"] = evaluateExpression(watch,lul_device, lul_service, lul_variable,k,lul_value_old, lul_value_new, watch["LastUpdate"], exp_index, target["SceneID"])
-				debug(string.format(">>>evaluated %s, index:%s LastEval:%s",k,exp_index,tostring(watch['Expressions'][k][exp_index]["LastEval"])))
+			if (k=="workflow") then
+				local watchevent = { device=lul_device, service=lul_service, variable=lul_variable, watch=watch }
+				executeWorkflows( findALTUIDevice() , watchevent)
+			else
+				-- watch['Expressions'][k] is a table of object 		{ ["LastEval"] = nil, ["SceneID"] = scene }
+				-- v is an object
+				for exp_index,target in ipairs(watch['Expressions'][k]) do
+					watch['Expressions'][k][exp_index]["LastEval"] = evaluateExpression(watch,lul_device, lul_service, lul_variable,k,lul_value_old, lul_value_new, watch["LastUpdate"], exp_index, target["SceneID"])
+					debug(string.format(">>>evaluated %s, index:%s LastEval:%s",k,exp_index,tostring(watch['Expressions'][k][exp_index]["LastEval"])))
+				end
 			end
 		end
 		debug(string.format("-----> DataProviders() %s",json.encode(watch['DataProviders'])))
@@ -1867,115 +2721,6 @@ end
 function variableWatchCallback(lul_device, lul_service, lul_variable, lul_value_old, lul_value_new)
 	lul_device = "0-"..lul_device
 	_internalVariableWatchCallback(lul_device, lul_service, lul_variable, lul_value_old, lul_value_new)
-end
-
-function _addWatch( service, variable, devid, scene, expression, xml, provider, providerparams )
-	debug(string.format("_addWatch(%s,%s,%s,%s,%s,%s,%s,%s)",service, variable, devid, scene, expression, xml or "", provider or "", json.encode(providerparams or "")))
-	local data = json.encode(providerparams)
-	local result = 1
-	devidstr = tostring(devid)	 -- to inssure it is not a indexed array , but hash table 
-	local parts = devidstr:split("-")
-	if (parts[2]==nil) then
-		devidstr = "0-"..devidstr
-		parts = devidstr:split("-")
-	end
-	local bDuplicateWatch = false
-	if (registeredWatches[devidstr] == nil) then
-		registeredWatches[devidstr]={}
-	end
-	if (registeredWatches[devidstr][service] == nil) then
-		registeredWatches[devidstr][service]={}
-	end
-	if (registeredWatches[devidstr][service][variable] == nil) then
-		registeredWatches[devidstr][service][variable] = {
-			["LastOld"] = nil,
-			["LastNew"] = nil,
-			["LastUpdate"] = nil
-		}
-	else 
-		-- a watch was already there
-		bDuplicateWatch = true
-	end
-	if (registeredWatches[devidstr][service][variable]['Expressions'] == nil) then
-		registeredWatches[devidstr][service][variable]['Expressions']={}
-	end
-	if (registeredWatches[devidstr][service][variable]['Expressions'][expression] == nil) then
-		registeredWatches[devidstr][service][variable]['Expressions'][expression] = {}
-	end
-	local n = tablelength(registeredWatches[devidstr][service][variable]['Expressions'][expression])
-	
-	-- Data Push Configuration 
-	if (scene==-1) then
-		registeredWatches[devidstr][service][variable]['Expressions'][expression][1]= {
-			["LastEval"] = nil,
-			["SceneID"] = scene
-		}	
-		if (DataProviders[provider]==nil) or ( data=="" )  then
-			warning(string.format("Unknown data push provider:%s or data:%s",provider or"", data or ""))
-		end
-		if (registeredWatches[devidstr][service][variable]['DataProviders'] == nil) then
-			registeredWatches[devidstr][service][variable]['DataProviders']={}
-		end
-		if (registeredWatches[devidstr][service][variable]['DataProviders'][provider] == nil) then
-			registeredWatches[devidstr][service][variable]['DataProviders'][provider]={}
-		end
-		local n2 = tablelength(registeredWatches[devidstr][service][variable]['DataProviders'][provider])
-		local bFound = false
-		for i=1,n2 do
-			if (registeredWatches[devidstr][service][variable]['DataProviders'][provider][i]['Data']==data) then
-				bFound = true
-			end			
-		end
-		if (bFound==false) then
-			registeredWatches[devidstr][service][variable]['DataProviders'][provider][n2+1] = {
-				['Data']=data
-			}
-		end
-	else
-		local bFound = false
-		for i=1,n do
-			if (registeredWatches[devidstr][service][variable]['Expressions'][expression][i]["SceneID"] == scene ) then
-				bFound = true
-			end
-		end
-		if (bFound==false) then
-			registeredWatches[devidstr][service][variable]['Expressions'][expression][n+1]= {
-				["LastEval"] = nil,
-				["SceneID"] = scene
-			}
-		end
-	end
-	if (bDuplicateWatch==true) then
-		debug(string.format("Ignoring luup.variable_watch for duplicate watch for %s-%s",service,variable))
-		result = 0
-	else
-		if (parts[1]=="0") then	 
-			-- Master Controller
-			luup.variable_watch("variableWatchCallback", service,variable,tonumber(parts[2]))
-		else
-			-- Secondary Controller
-			local extraController= getSetVariable(ALTUI_SERVICE, "ExtraController", lul_device, "")
-			local controllers = extraController:split(",")
-			local ipaddr =  controllers [ tonumber(parts[1]) ]:trim()
-			local url = string.format("http://%s/port_3480/data_request?id=lr_ALTUI_Handler&command=addRemoteWatch&device=%s&variable=%s&service=%s&ctrlid=%s&ipaddr=%s",
-				ipaddr,		-- remote ctrl ip addr
-				parts[2],	-- pure vera device id on remote controller
-				variable,	 
-				service,	
-				parts[1],	-- controller id for ALTUI
-				getIP()		-- local IP address for callback
-				)
-			debug(string.format("Calling url to set remote watch. url:%s",url))
-			local httpcode,data = luup.inet.wget(url,10)
-			if (httpcode~=0) then
-				error(string.format("failed to connect to url:%s, luup.inet.wget returned %d", url,httpcode))
-				return 0
-			end
-			debug(string.format("success httpcode:%s data:%s",httpcode,data))	
-		end
-	end
-	debug(string.format("registeredWatches: %s",json.encode(registeredWatches)))
-	return result
 end
 
 function addWatch( lul_device, service, variable, deviceid, sceneid, expression, xml, provider, providerparams )
@@ -2079,7 +2824,7 @@ function _delWatch(service, variable, deviceid, sceneid, expression, xml, provid
 			variable,	 
 			service,	
 			parts[1],	-- controller id for ALTUI
-			getIP()		-- local IP address for callback
+			hostname	-- local IP address for callback
 			)
 		debug(string.format("Calling url to delete remote watch. url:%s",url))
 		local httpcode,data = luup.inet.wget(url,10)
@@ -2341,6 +3086,12 @@ function startupDeferred(lul_device)
 	local serverOptions= getSetVariable(ALTUI_SERVICE, "ServerOptions", lul_device, "")	
 	local localcdn = getSetVariable(ALTUI_SERVICE, "LocalCDN", lul_device, "")
 	local localbootstrap = getSetVariable(ALTUI_SERVICE, "LocalBootstrap", lul_device, "")
+	local worfklowmode = getSetVariable(ALTUI_SERVICE, "EnableWorkflows", lul_device, "0")
+	local worfklowactivestates = getSetVariable(ALTUI_SERVICE, "WorkflowsActiveState", lul_device, "")
+	local workflowsVariableBag = json.decode( getSetVariable(ALTUI_SERVICE, "WorkflowsVariableBag", lul_device, "") ) or {}
+
+	local timers = getSetVariable(ALTUI_SERVICE, "Timers", lul_device, "")
+	
 	if (localbootstrap == "") then	
 		localbootstrap=defaultBootstrapPath
 	else
@@ -2362,7 +3113,6 @@ function startupDeferred(lul_device)
 		DEBUG_MODE = true
 		UserMessage("Enabling debug mode for device:"..lul_device,TASK_BUSY)
 	end
-	
 	local major,minor = 0,0
 	local tbl={}
 	
@@ -2393,9 +3143,7 @@ function startupDeferred(lul_device)
 		luup.variable_set(ALTUI_SERVICE, "Version", version, lul_device)
 	end	
 	
-	-- init watches
 	-- init data storages
-
 	_loadDataProviders()
 	registerDataProvider("thingspeak","sendValueToStorage_thingspeak",sendValueToStorage_thingspeak, "", {
 		[1] 	= { ["key"]= "channelid", ["label"]="Channel ID", ["type"]="number" },
@@ -2417,8 +3165,22 @@ function startupDeferred(lul_device)
 		-- [1] 	= { ["key"]= "toto", ["label"]="To To", ["type"]="text" },
 		-- [2] 	= { ["key"]= "graphicurl", ["label"]="Graphic Url", ["type"]="url" , ["default"]="//www.google.com/{0}"}
 	-- })
+
+	-- init watches
 	fixVariableWatchesDeviceID( lul_device )
 	initVariableWatches( lul_device)
+
+	-- init timers
+	initTimers(lul_device)
+
+	-- init Workflows
+	enableWorkflows(lul_device,worfklowmode)	-- will trigger start if mode is true
+	
+	-- start handlers
+	registerHandlers()
+
+	-- process old timers
+	processTimers(lul_device)
 
 	-- NOTHING to start 
 	if( luup.version_branch == 1 and luup.version_major == 7) then
@@ -2426,9 +3188,8 @@ function startupDeferred(lul_device)
 	else
 		luup.set_failure(false,lul_device)	-- should be 0 in UI7
 	end
-
-	registerHandlers()
 	
+	-- 
 	log("startup completed")
 end
 		

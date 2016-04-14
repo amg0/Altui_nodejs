@@ -29,13 +29,64 @@ var ALTUI_IPhoneLocator= ( function( window, undefined ) {
 		var html ="";
 		html += ALTUI_PluginDisplays.createOnOffButton( debug,"altui-onoffbtn-"+device.altuiid, _T("Normal,Debug") , "pull-right");
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_IPhoneLocator.toggleDebug('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_IPhoneLocator.toggleDebug('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
-		
 		return html;
 	};
 	
+	function _drawAltUIControlPanel( device, domparent) {
+		function _displayOneDevice( altuiid ) {
+			var device = MultiBox.getDeviceByAltuiID(altuiid);
+			$("#altui-display-box").html( ALTUI_Templates.deviceEmptyContainerTemplate.format(device.id,device.altuiid));
+			$('.altui-device[data-altuiid={0}]'.format(device.altuiid)).html( UIManager.deviceDraw(device) );
+		}
 
+		var devices = MultiBox.getDevicesSync();
+		var device = MultiBox.getDeviceByID( 0, g_MyDeviceID );
+		
+		var html ="";
+		html += "<div class='col-xs-12'>";
+			html += "<h3>Pick a device:</h3>"
+			html += "<div class='row'>";
+				html += "<div class='altui-panel-controls col-xs-6 '>";			
+
+					html += DialogManager.pickDevice(devices,device.altuiid,'altui-select-device')
+					var _recordMode = MultiBox.isRecording();
+					html += ALTUI_PluginDisplays.createOnOffButton( _recordMode==true ? 1 : 0,"altui-recordmode-"+device.altuiid, _T("Normal,Recorder") , "pull-left");
+				html += "</div>"
+				html += "<div class='col-xs-6 '>";			
+					html +="<div id='altui-display-box' class='row'>"
+						html += ALTUI_Templates.deviceEmptyContainerTemplate.format(device.id,device.altuiid,'altui-norefresh col-xs-12');	
+					html += "</div>";
+				html += "</div>";			
+			html +="</div>";
+		html +="</div>";
+		html += "<pre id='altui-record-log'></pre>"			
+		$(domparent).append(html);
+		_displayOneDevice( device.altuiid );
+		// interactions
+		$("#altui-recordmode-"+device.altuiid).closest('.altui-panel-controls')
+		.off()
+		.on('click', "#altui-recordmode-"+device.altuiid, function() {
+			var checked = $("#altui-recordmode-"+device.altuiid).find("input").prop('checked');
+			_recordMode = !checked;
+			if (_recordMode==true) {
+				MultiBox.startRecorder( function( action ) {
+					$("#altui-record-log").append( JSON.stringify(action)+'\n' )
+				});
+				$("#altui-record-log").text( "recording...\n" )
+			} else {
+				var log = MultiBox.stopRecorder();
+				$("#altui-record-log").text( JSON.stringify(log,null,2) )
+			}
+			$(".altui-panel-controls .altui-button-onoff").replaceWith( ALTUI_PluginDisplays.createOnOffButton( _recordMode==true ? 1 : 0,"altui-recordmode-"+device.altuiid, _T("Normal,Recorder") , "pull-left") );
+		});
+		$('#altui-select-device').change(function(){
+			var altuiid = $(this).val();
+			_displayOneDevice( altuiid )
+		});
+	};
+	
 	function _drawIPX( device) {
 		var html ="";
 		var ip = device.ip;
@@ -60,7 +111,7 @@ var ALTUI_IPhoneLocator= ( function( window, undefined ) {
 
 		html += ALTUI_PluginDisplays.createOnOffButton( mute,"altui-onoffbtn-"+device.altuiid, _T("Unmuted,Muted") , "pull-right");
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_IPhoneLocator.toggleMute('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_IPhoneLocator.toggleMute('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		
 		return html;
@@ -75,7 +126,7 @@ var ALTUI_IPhoneLocator= ( function( window, undefined ) {
 			html+=("<div class='altui-canalplus' >{0}</div><span><small>{1}</small></span>".format(channel[1],channel[0]));
 
 		html += "<script type='text/javascript'>";
-		html += " $('div#altui-onoffbtn-{0}').on('click touchend', function() { ALTUI_IPhoneLocator.toggleCplusOnOff('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
+		html += " $('div#altui-onoffbtn-{0}').on('click', function() { ALTUI_IPhoneLocator.toggleCplusOnOff('{0}','div#altui-onoffbtn-{0}'); } );".format(device.altuiid);
 		html += "</script>";
 		return html;
 	};
@@ -127,6 +178,7 @@ html+="<tr><td><button class='altui-cplus-button btn btn-default' id='VOL-'>VOL-
 	drawIPhone 	: _drawIPhone,
 	drawIPX		: _drawIPX,
 	drawAltUI 	: _drawAltUI,
+	drawAltUIControlPanel:_drawAltUIControlPanel,
 	drawCanalplus : _drawCanalplus,
 	drawCanaplusControlPanel : _drawCanaplusControlPanel,
 	

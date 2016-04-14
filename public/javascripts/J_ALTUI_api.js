@@ -1,4 +1,4 @@
-//# sourceURL=J_ALTUI_api.js
+//# sourceURL=J_ALTUI_api.js with API & Interface updates
 // "use strict";
 // http://192.168.1.16:3480/data_request?id=lr_ALTUI_Handler&command=home
 // This program is free software: you can redistribute it and/or modify
@@ -109,8 +109,10 @@ function has_changes(msg) {
 //
 function trim(stringToTrim)
 {
-    return stringToTrim.replace(/^\s+|\s+$/g,"");
+	return stringToTrim.trim()
+    // return stringToTrim.replace(/^\s+|\s+$/g,"");
 }
+
 function get_node_obj(nodeObj,nodeID)
 {
     var itemsCount=nodeObj.length;
@@ -350,14 +352,195 @@ var Utils = ( function (undefined) {
 			var reg = new RegExp('^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(:\\d{1,5})?$', 'i');
 			return(reg.test(ip));
 		},
+		xmlEncode : function(str)		{ return xml_encode(str); },
 		getLangString: function(s1,s2)	{ return _T(s2);},	// returned localized version of the string
-		xmlEncode : function(str)		{ return xml_encode(str); }
+		getLabel: function (obj, opt_sanitize) {
+			try {
+				if ('undefined' != typeof obj) {
+					var doSanitize = 'undefined' != typeof opt_sanitize ? opt_sanitize : !1;
+					if ('undefined' != typeof obj.text) {
+						var text = obj.text;
+						return text
+					}
+				}
+			} catch (exception) {
+				Utils.logError('Error in Utils.getLabel(): ' + exception)
+			}
+			return ''
+		}
 	}
 })();
 
 var Interface = function (undefined) {
 	return {
-		showMessagePopup: function(msg,code) { PageMessage.message(msg,"success"); },
+		showMessagePopup: function(content, opt_category, opt_autohide, options) {
+			try {
+
+				var DialogTemplate = "<div id='{0}' class='modal fade'>";
+				DialogTemplate += "  <div class='modal-dialog {3}'>";
+				DialogTemplate += "    <form class='form' data-toggle='validator' onsubmit='return false;'>";
+				DialogTemplate += "    <div class='modal-content'>";
+				DialogTemplate += "      <div class='modal-header'>";
+				DialogTemplate += "        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>";
+				DialogTemplate += "        <h4 class='modal-title'>{1} </h4>";
+				DialogTemplate += "      </div>";
+				DialogTemplate += "      <div class='modal-body'>";
+				DialogTemplate += "      <div class='row-fluid'>";
+				DialogTemplate += "      {2}";
+				DialogTemplate += "      </div>";
+				DialogTemplate += "      </div>";
+				DialogTemplate += "      <div class='modal-footer'>";
+				DialogTemplate += "        <button type='submit' class='btn btn-default' data-dismiss='modal'>{4}</button>";
+				DialogTemplate += "      </div>";
+				DialogTemplate += "    </div><!-- /.modal-content -->";
+				DialogTemplate += "    </form>";
+				DialogTemplate += "  </div><!-- /.modal-dialog -->";
+				DialogTemplate += "</div><!-- /.modal -->";
+
+				var label = ""
+					, category = opt_category ? opt_category : 0
+					, displayErrorPopup = !1
+					, displayWaitingPopup = !1
+					, displayConfirmationPopup = !1
+					, $myModal
+					, timeoutMessagePopup
+					, btnTitle;
+				switch (category) {
+					case 0:
+						AltuiDebug.debug("showMessagePopup: processing SUCCESS message");
+						label ="Success";
+						btnTitle = "Ok";
+						break;
+					case 1:
+						AltuiDebug.debug("showMessagePopup: processing NOTIFICATION message");
+						label = "Warning";
+						btnTitle = "Ok";
+						break;
+					case 2:
+						AltuiDebug.debug("showMessagePopup: processing ERROR message");
+						label = "Error";
+						displayErrorPopup = !0;
+						break;
+					case 3:
+						AltuiDebug.debug("showMessagePopup: processing WAITING message");
+						label = "Success";
+						displayWaitingPopup = !0;
+						btnTitle = "Ok";
+						break;
+					case 4:
+						AltuiDebug.debug("showMessagePopup: processing CONFIRMATION message");
+						label = "Confirmation Required";
+						displayConfirmationPopup = !0
+						btnTitle = "Cancel";
+						break;
+					default:
+						AltuiDebug.debug("showMessagePopup: processing default SUCCESS message");
+						label ="Success";
+						btnTitle = "Ok";
+						break;
+				}
+				console.log("showMessagePopup: dialog title = ",label);
+				if ("confirm" == options.category) {
+					displayConfirmationPopup = !0;
+					label = "Confirmation Required";
+					AltuiDebug.debug("showMessagePopup: CONFIRMATION dialog title = ",label);
+				}
+				if (options.title) {
+					label = options.title;
+					AltuiDebug.debug("showMessagePopup: dialog options.title = ",label);
+				}
+				$myModal = DialogManager.registerDialog( 'showMessagePopup', defaultDialogModalTemplate.format('showMessagePopup',label,content,"",btnTitle));
+				displayErrorPopup ? 
+					(($myModal).off("click").on("click", function(e) {
+						e.stopPropagation(),
+						$myModal.modal("hide")
+					})) : 
+				displayWaitingPopup ?
+					($myModal.off("click").on("click", function(e) {
+						e.stopPropagation(),
+						$myModal.modal("hide")
+					})):
+					($myModal.modal("hide"))
+
+				displayConfirmationPopup ? 
+					DialogManager.dlgAddDialogButton($myModal, true, _T("Ok"),'showMessagePopup_success',{ 'data-modal_role':'success'}):
+					(btnTitle = "Ok")
+
+				$myModal.off("hide.bs.modal").on("hide.bs.modal", function() {
+					clearTimeout(timeoutMessagePopup),
+					"undefined" != typeof options && "function" == typeof options.onHide && (console.log("firing onHide()"),options.onHide())
+				}),
+				$myModal.off("hidden.bs.modal").on("hidden.bs.modal", function() {
+					"undefined" != typeof options && "function" == typeof options.afterHide && (console.log("firing afterHide"),options.afterHide())
+				}),
+				"undefined" != typeof options && "function" == typeof options.beforeShow && (console.log("firing beforeShow"),options.beforeShow()),
+				$myModal.modal("show"),
+				$myModal.off("shown.bs.modal").on("shown.bs.modal", function() {
+					"undefined" != typeof options && "function" == typeof options.afterShow && (console.log("firing afterShow"),options.afterShow())
+				}),
+				// event listener for confirmation dialog "OK" button
+				$myModal.find('[data-modal_role="success"]').off("click").on("click", function(e) {
+					e.stopPropagation(),
+					"undefined" != typeof options && "function" == typeof options.onSuccess && (console.log("firing onSuccess"),options.onSuccess()),
+					$myModal.modal("hide")
+				}),
+
+
+				 $('div#dialogs')
+					.off('click')
+					.on( 'click','.modal-footer .btn-default', function(e) {
+						e.stopPropagation();
+						var retval = false
+						if (displayConfirmationPopup == !0) {
+							console.log("showMessagePopup: submit button clicked");
+							if (("undefined" != typeof options) && ("function" == typeof options.onFailure)) {
+								AltuiDebug.debug("firing onFailure");
+								options.onFailure();
+							}
+							retval = false;
+							AltuiDebug.debug("showMessagePopup: returning FALSE");
+						} else {
+							console.log("showMessagePopup: close/ok button clicked");
+							if (("undefined" != typeof options) && ("function" == typeof options.onSuccess)) {
+								AltuiDebug.debug("firing onSuccess");
+								options.onSuccess();
+							}
+							retval = true;
+							AltuiDebug.debug("showMessagePopup: returning TRUE");
+						}
+						$myModal.modal("hide")
+						return retval;
+					})
+					.off('click',"div#showMessagePopup .close")
+					.on( 'click',"div#showMessagePopup .close", function() {
+						// close button is always a failure
+						AltuiDebug.debug("showMessagePopup: dialog close button clicked");
+						if (("undefined" != typeof options) && ("function" == typeof options.onFailure)) {
+							AltuiDebug.debug("firing onFailure");
+							options.onFailure();
+						}
+						AltuiDebug.debug("showMessagePopup: returning FALSE");
+						return false;
+					}),
+
+				"undefined" != typeof opt_autohide && opt_autohide > 0 && (
+					timeoutMessagePopup = setTimeout(function() {
+						AltuiDebug.debug("firing autoHide");
+						$myModal.modal("hide");
+					}, opt_autohide)
+				)
+			} catch (exception) {
+				Utils.logError("Interface.showMessagePopup() error: " + exception.message)
+			}
+		},
+		updateDevice: function(deviceId,value,txt) 	{
+			if (txt && txt.length>=2) {
+				var device = MultiBox.getDeviceByID( _JSAPI_ctx.controllerid , deviceId);
+				var name = txt.substring( txt.lastIndexOf('.')+1 );
+				MultiBox.setAttr(device, "ip", value,null);
+			}
+		},
+		startupShowModalLoading:  function() {	show_loading(); },
 		showMessagePopupError: function(msg) { PageMessage.message(msg,"error"); },
 		showStartupModalLoading	: function() {	show_loading(); },
 		showModalLoading		: function() {	show_loading(); },
@@ -384,6 +567,16 @@ var application = (function(undefined) {
 		getSceneObject : function(SceneID) {
 			var scene = MultiBox.getSceneByID(_JSAPI_ctx.controllerid,SceneID);
 			return scene;
+		},
+		getDeviceChildrenIdList : function(deviceId) {
+			var childrenIdList = [];
+			try {
+				for (var i = 0; i < application.userData.devices.length; i++) 
+					parseInt(application.userData.devices[i].id_parent) === parseInt(deviceId) && childrenIdList.push(application.userData.devices[i].id)
+			} catch (err) {
+				Utils.logError('Application.getDeviceChildenIdList(): ' + err)
+			}
+			return childrenIdList
 		}
 	}
 })();
@@ -799,130 +992,113 @@ var ALARM_PARTITION_DISARMED='Disarmed';
 var ALARM_PARTITION_BREACH='Breach';
 var api = {
 	version: "UI7",
-	ui: {
-		updateDevice: function(deviceId,value,txt) 	{
-			if (txt && txt.length>=2) {
-				var device = MultiBox.getDeviceByID( _JSAPI_ctx.controllerid , deviceId);
-				var name = txt.substring( txt.lastIndexOf('.')+1 );
-				MultiBox.setAttr(device, "ip", value,null);
-			}
-		},
-		startupShowModalLoading:  function() {	show_loading(); }
-	},
-	cloneObject: function (obj) {
-		return cloneObject(obj);
-	},
+	API_VERSION: 6,
+	ui: myInterface,
+//	ui: {
+//		// should be myInterface object??
+//		updateDevice: function(deviceId,value,txt) 	{
+//			if (txt && txt.length>=2) {
+//				var device = MultiBox.getDeviceByID( _JSAPI_ctx.controllerid , deviceId);
+//				var name = txt.substring( txt.lastIndexOf('.')+1 );
+//				MultiBox.setAttr(device, "ip", value,null);
+//			}
+//		},
+//		startupShowModalLoading:  function() {	show_loading(); }
+//	},
 	getCommandURL: function() {
 		return command_url;
 	},
-	getSendCommandURL: function() {
-		return send_command_url;
+	getSysinfo: function () {
+		// should return sysInfo object
+		return jQuery.parseJSON(_JSAPI_ctx.sysinfoJson);
 	},
 	getDataRequestURL: function() {
 		return data_request_url;
 	},
-	getCpanelContent: function() {
-		return "";
+	getSendCommandURL: function() {
+		return send_command_url;
 	},
-	getListOfDevices: function () {
-		return jsonp.ud.devices;
+	getUserData:  function () {
+		// should return the userdata object
+		_JSAPI_ctx.application.userData;
 	},
 	getCpanelDeviceId: function () {
 		return _JSAPI_ctx.deviceid;
 	},
-	getCurrentHouseMode: function(onSuccess, onFailure, context) {
-		MultiBox.getHouseMode( function (mode) {
-			if (mode==null) {
-				if (onFailure)
-					(onFailure).call(context);
-			}else {
-				if (onSuccess)
-					(onSuccess).call(context,mode);
-			}
-		});
-	},
-	setCurrentHouseMode: function(modeValue, onSuccess, onFailure, context) {
-		MultiBox.setHouseMode(modeValue,function(mode) {
-			if (mode==null) {
-				if (onFailure)
-					(onFailure).call(context);
-			}else {
-				if (onSuccess)
-					(onSuccess).call(context,mode);
-			}
-		});
-	},
-	getDeviceIndex: function(deviceid) {
-		var index  = null;
-		$.each(jsonp.ud.devices, function(idx,elem) {
-			if (elem.id==deviceid) {
-				index = idx;
-				return false;
-			}
-		});
-		return index;
-	},
-	getDeviceObject: function(deviceid) {
-		var obj   = null;
-		$.each(jsonp.ud.devices, function(idx,elem) {
-			if (elem.id==deviceid) {
-				obj = elem;
-				return false;
-			}
-		});
-		return obj;
-	},
-	setCpanelContent: function (html) {
-		set_panel_html(html);
+	getDeviceState: function (deviceId, service, variable, options) {
+		return this.getDeviceStateVariable(deviceId, service, variable, options);
 	},
 	getDeviceStateVariable: function (deviceId, service, variable, options) {
 		return get_device_state(deviceId, service, variable, ( ( options && options.dynamic === true ) ? 1: 0));
 	},
-	getDeviceState: function (deviceId, service, variable, options) {
-		return this.getDeviceStateVariable(deviceId, service, variable, options);
+	setCpanelContent: function (html) {
+		set_panel_html(html);
 	},
-	getDeviceTemplate: function(deviceId) {
-		return false;
+	getCpanelContent: function() {
+		// should return contents (DOM Object) of the current tab
+		return "";
 	},
+	setDeviceStateVariable: function (deviceId, service, variable, value, options) {
+		// API version 6 - this function need to call a success/fail callback
+		var dynamic = (options.dynamic && (options.dynamic === true))?1:0;
+		var onSuccess = (options.onSuccess && (typeof options.onSuccess == "function"))?options.onSuccess:void 0;
+		var deferred = $.Deferred();
+		try {
+			// set_device_state does not return a value - fail callback not usable
+			set_device_state(deviceId, service, variable, value, dynamic);
+			if (onSuccess && (typeof onSuccess == "function")) {
+				onSuccess();
+			} else if (options.context[onSuccess] && (typeof options.context[onSuccess] == "function")) {
+				options.context[onSuccess]();
+			}
+		}
+		catch (e) {
+		}
+	},
+	setDeviceState: function(deviceId, service, variable, value, options) {
+		return this.setDeviceStateVariable(deviceId, service, variable, value, options);
+	},
+	setDeviceStatePersistent: function(deviceId, service, variable, value, options) {
+		return this.setDeviceStateVariablePersistent(deviceId, service, variable, value, options);
+	},
+	setDeviceStateVariablePersistent: function (deviceId, service, variable, value, options) {
+		// API version 6 - this function need to call a success/fail callback
+		var onSuccess = null;
+		if (options) {
+			if (options.onSuccess && (typeof options.onSuccess == "function"))
+				onSuccess = options.onSuccess
+		}
+		// var onSuccess = (options.onSuccess && (typeof options.onSuccess == "function"))?options.onSuccess:void 0;
+		var deferred = $.Deferred();
+		try {
+			// set_device_state does not return a value - fail callback not usable
+			set_device_state(deviceId, service, variable, value, -1);
+			if ($.isFunction(onSuccess)) {
+				(onSuccess)();
+			} else if (options.context[onSuccess] && (typeof options.context[onSuccess] == "function")) {
+				(options.context[onSuccess])();
+			}
+		}
+		catch (e) {
+		}
+	},	
 	getDisplayedDeviceName: function(deviceId) {
 		var device = this.getDeviceObject(deviceId);
 		if (device && device.id!=0)
 			return device.name;
 		return 'unnamed device';
 	},
-	getEventDefinition: function(deviceType) {
-		var _devicetypesDB = MultiBox.getDeviceTypesDB(_JSAPI_ctx.controllerid);
-		var dt = _devicetypesDB[deviceType];	// is an associative array indexed by json name
-		// UI7 api seems flawed as it assumes only one JSON file per device type
-		// ALTUI will return a union of all
-		var eventList2 = {};
-		$.each(dt, function(idx,ui_static_data) {
-			if (ui_static_data.eventList2 != undefined)
-				eventList2 = $.extend(true,eventList2,ui_static_data.eventList2);
+	runUpnpCode: function(code, options, onSuccess, onFailure, context) {
+		// return _upnpHelper.UPnPRunLua(code, function(data) {
+		return MultiBox.runLua(_JSAPI_ctx.controllerid, code, function(data) {
+			if (data==null) {
+				if (onFailure)
+					(onFailure).call(context,null);
+			} else {
+				if (onSuccess)
+					(onSuccess).call(context,data);
+			};
 		});
-		return eventList2;
-	},
-	setDeviceStateVariable: function (deviceId, service, variable, value, options) {
-		set_device_state(deviceId, service, variable, value, (options && (options.dynamic === true)) ? 1: 0);
-	},
-	setDeviceAttribute: function(deviceId, attributeName, attributeValue, options) {
-		var device = MultiBox.getDeviceByID( _JSAPI_ctx.controllerid, deviceId );
-		MultiBox.setAttr( device, attributeName, attributeValue,function(result) {
-			if ( options && $.isFunction(options.callback) )
-				(options.callback)();
-		});
-	},
-	setDeviceState:function(deviceId, service, variable, value, options) {
-		return this.setDeviceStateVariable(deviceId, service, variable, value, options);
-	},
-	setDeviceStateVariablePersistent: function (deviceId, service, variable, value, options) {
-		set_device_state(deviceId, service, variable, value, -1);
-	},	
-	setDeviceStatePersistent:function(deviceId, service, variable, value, options) {
-		return this.setDeviceStateVariablePersistent(deviceId, service, variable, value, options);
-	},
-	getListOfSupportedEvents: function() {
-		return EventBus.getEventSupported();
 	},
 	getLuSdata: function(onSuccess, onFailure, context) {
 		var url = "data_request?id=sdata&output_format=json";
@@ -949,21 +1125,6 @@ var api = {
 		.always(function() {
 		});
 	},
-	getSceneDescription: function(sceneId, options) {
-		var scene = this.getSceneByID(sceneId);
-		var clone = cloneObject(scene);
-		if (options) {
-			if (options.hideTriggers == true)
-				delete clone["triggers"];
-			if (options.hideSchedules == true)
-				delete clone["timers"];
-			if (options.hideActions == true)
-				delete clone["groups"];
-			// if (options.hideNotifications == true)
-				// delete clone["???"];
-		}
-		return JSON.stringify(clone);
-	},
 	registerEventHandler: function(eventName, object, functionName) {
 		EventBus.registerEventHandler(eventName, window, function( /*args*/ ) {
 			//in API7 the parameters to the callback do not include the eventname
@@ -973,6 +1134,96 @@ var api = {
 			var func = object[functionName];
 			func.apply( object , theArgs );
 		});
+	},
+	isListenerRegistered: function() {
+		// API version 6
+		// NOT IMPLEMENTED
+	},
+	getCurrentHouseMode: function(onSuccess, onFailure, context) {
+		MultiBox.getHouseMode( function (mode) {
+			if (mode==null) {
+				if (onFailure)
+					(onFailure).call(context);
+			}else {
+				if (onSuccess)
+					(onSuccess).call(context,mode);
+			}
+		});
+	},
+	setCurrentHouseMode: function(modeValue, onSuccess, onFailure, context) {
+		MultiBox.setHouseMode(modeValue,function(mode) {
+			if (mode==null) {
+				if (onFailure)
+					(onFailure).call(context);
+			}else {
+				if (onSuccess)
+					(onSuccess).call(context,mode);
+			}
+		});
+	},
+	cleanUp: function () {
+		// API version 6
+		this.unregisterAllEventHandlersForDeviceId(this.getCpanelDeviceId());
+	},
+	unregisterAllEventHandlersForDeviceId: function(deviceId) {
+		// API version 6
+		// NOT IMPLEMENTED
+		// EventBus does not appear to associate events to devices
+	 },
+	getDeviceObject: function(deviceid) {
+		var obj   = null;
+		$.each(jsonp.ud.devices, function(idx,elem) {
+			if (elem.id==deviceid) {
+				obj = elem;
+				return false;
+			}
+		});
+		return obj;
+	},
+	getDeviceTemplate: function(deviceId) {
+		return false;
+	},
+	getEventDefinition: function(deviceType) {
+		var _devicetypesDB = MultiBox.getDeviceTypesDB(_JSAPI_ctx.controllerid);
+		var dt = _devicetypesDB[deviceType];	// is an associative array indexed by json name
+		// UI7 api seems flawed as it assumes only one JSON file per device type
+		// ALTUI will return a union of all
+		var eventList2 = {};
+		$.each(dt, function(idx,ui_static_data) {
+			if (ui_static_data.eventList2 != undefined)
+				eventList2 = $.extend(true,eventList2,ui_static_data.eventList2);
+		});
+		return eventList2;
+	},
+	getDeviceIndex: function(deviceid) {
+		var index  = null;
+		$.each(jsonp.ud.devices, function(idx,elem) {
+			if (elem.id==deviceid) {
+				index = idx;
+				return false;
+			}
+		});
+		return index;
+	},
+	cloneObject: function (obj) {
+		return cloneObject(obj);
+	},
+	getRoomObject: function(roomId) {
+		// API version 6
+		for (var i=0; i<jsonp.ud.rooms.length; i++) {
+			if (jsonp.ud.rooms[i].id == roomId)
+				return jsonp.ud.rooms[i];
+		}
+		return null; 
+	},
+	getListOfDevices: function () {
+		return jsonp.ud.devices;
+	},
+	getListOfSupportedEvents: function() {
+		return EventBus.getEventSupported();
+	},
+	performLuActionOnDevice: function(deviceId, service, action, options) {
+		return this.performActionOnDevice(deviceId, service, action, options);
 	},
 	performActionOnDevice: function(deviceId, service, action, options) {
 		options = $.extend({ 
@@ -1003,19 +1254,132 @@ var api = {
 			}
 		);
 	},
-	performLuActionOnDevice: function(deviceId, service, action, options) {
-		return this.performActionOnDevice(deviceId, service, action, options);
+	getSceneDescription: function(sceneId, options) {
+		var scene = this.getSceneByID(sceneId);
+		var clone = cloneObject(scene);
+		if (options) {
+			if (options.hideTriggers == true)
+				delete clone["triggers"];
+			if (options.hideSchedules == true)
+				delete clone["timers"];
+			if (options.hideActions == true)
+				delete clone["groups"];
+			// if (options.hideNotifications == true)
+				// delete clone["???"];
+		}
+		return JSON.stringify(clone);
 	},
-	runUpnpCode: function(code, options, onSuccess, onFailure, context) {
-		// return _upnpHelper.UPnPRunLua(code, function(data) {
-		return MultiBox.runLua(_JSAPI_ctx.controllerid, code, function(data) {
-			if (data==null) {
-				if (onFailure)
-					(onFailure).call(context,null);
-			} else {
-				if (onSuccess)
-					(onSuccess).call(context,data);
-			};
+	luReload: function (onSuccess, onFailure, context) {
+		// API version 6
+		// UNIMPLEMENTED
+		MultiBox.reloadEngine(_JSAPI_ctx.controllerid);
+	},
+	isZWaveChild: function (deviceId) {
+		// API version 6
+		// UNIMPLEMENTED - return false by default
+		return Multibox.isDeviceZwave(_JSAPI_ctx.deviceid);
+	},
+	setDeviceProperty: function(deviceId, attributeName, attributeValue, options) {
+		return this.setDeviceAttribute(deviceId, attributeName, attributeValue, options);
+	},
+	setDeviceAttribute: function(deviceId, attributeName, attributeValue, options) {
+		var device = MultiBox.getDeviceByID( _JSAPI_ctx.controllerid, deviceId );
+		MultiBox.setAttr( device, attributeName, attributeValue,function(result) {
+			if ( options && $.isFunction(options.callback) )
+				(options.callback)();
 		});
 	},
+	getDeviceProperty: function(deviceId, propertyName) {
+		// API version 6
+		var device = MultiBox.getDeviceByID( _JSAPI_ctx.controllerid, deviceId );
+		if ('undefined' != typeof device) MultiBox.getAttr( device, attributeName);
+		return void 0;
+	},
+	getDeviceAttribute: function (deviceId, attributeName) {
+		// API version 6
+		return this.getDeviceProperty(deviceId, attributeName)
+	},
+	triggerDeviceStatusChanged: function (deviceId) {
+		// API version 6
+		// NOT IMPLEMENTED
+	},
+	openSceneEditor: function (sceneId, options) {
+		// API version 6
+		// NOT IMPLEMENTED
+	},
+	createSceneSelector: function ($parentContainer, options) {
+		// API version 6
+		// NOT IMPLEMENTED
+	},
+	createDeviceSelector: function ($parentContainer, options) {
+		// options = { onChange = <function>, id = <selector id>, firstOptionText = <text>, preSelectedId = <device id>}
+		// API version 6
+		// NOT IMPLEMENTED
+	},
+	createDeviceControl: function (controlObject, deviceId, options) {
+		// API version 6
+		// NOT IMPLEMENTED - UImanager needs update to expose control drawing methods
+	},
+	showCustomPopup: function (content, opt) {
+		// API version 6
+		try {
+			var autoHide = 'undefined' != typeof opt && 'undefined' != typeof opt.autoHide ? parseFloat(1000 * opt.autoHide)  : 0,
+			 category = 'undefined' != typeof opt && 'undefined' != typeof opt.category ? opt.category : void 0,
+			 beforeShow = 'undefined' != typeof opt && 'function' == typeof opt.beforeShow ? opt.beforeShow : void 0,
+			 afterShow = 'undefined' != typeof opt && 'function' == typeof opt.afterShow ? opt.afterShow : void 0,
+			 onHide = 'undefined' != typeof opt && 'function' == typeof opt.onHide ? opt.onHide : void 0,
+			 afterHide = 'undefined' != typeof opt && 'function' == typeof opt.afterHide ? opt.afterHide : void 0,
+			 onSuccess = 'undefined' != typeof opt && 'function' == typeof opt.onSuccess ? opt.onSuccess : void 0,
+			 onCancel = 'undefined' != typeof opt && 'function' == typeof opt.onCancel ? opt.onCancel : void 0;
+      
+			this.ui.showMessagePopup(content, '', autoHide, {
+				beforeShow: beforeShow,
+				afterShow: afterShow,
+				onHide: onHide,
+				onSuccess: onSuccess,
+				onCancel: onCancel,
+				afterHide: afterHide,
+				category: category
+			});
+//			PageMessage.message(content,"success");
+		} catch (e) {
+			Utils.logError('API.showCustomPopup(): ' + e);
+		}
+	},
+	showLoadingOverlay: function () {
+		// API version 6
+		// shows the green spinning circle of death
+		// this function needs to return a promise object
+		_spinDialog = DialogManager.createSpinningDialog();
+		_spinDialog.modal('show');
+		return $.Deferred().resolve();
+	},
+	hideLoadingOverlay: function () {
+		// API version 6
+		// NOT IMPLEMENTED
+		// removes  the green spinning circle of death
+		hide_loading();
+	},
+	getListOfDeviceChildren: function (deviceId) {
+		// API version 6
+		return Util.getDeviceChildrenIdList(deviceId);
+	},
+	getVersion: function () {
+		// API version 6
+		return API_VERSION;
+	},
+	requiresVersion: function (minVersion, opt_fnFailure) {
+console.log("minVersion:",minVersion,"API Version:",this.API_VERSION);
+		if (parseInt(this.API_VERSION) < parseInt(minVersion)) {
+			if ('function' == typeof opt_fnFailure) {
+				return opt_fnFailure(this.API_VERSION);
+			}
+			return !1;
+		}
+		return !0;
+	},
+	checkDeviceTemplate: function (deviceTemplate) {
+		// API version 6
+		// NOT IMPLEMENTED - not implemented by MCV
+	}
 };

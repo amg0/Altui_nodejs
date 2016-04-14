@@ -15,6 +15,13 @@ var ALTUI_NEW_SCENE_ID = -1;
 var UserDataHelper = (function(user_data) { 
 	var _user_data = user_data;
 	return {
+		findSceneIdxByID : function(scid) {
+			for (var i=0; i<_user_data.scenes.length; i++ ) {
+				if (_user_data.scenes[i].id==scid)
+					return i;
+			}
+			return -1;
+		},
 		findDeviceIdxByID : function (devid) {
 			for (var i=0; i<_user_data.devices.length; i++ ) {
 				if (_user_data.devices[i].id==devid)
@@ -39,19 +46,40 @@ var UserDataHelper = (function(user_data) {
 			}
 			return false;
 		},
+		isDeviceZigbee : function (device) {
+			if (device && device.id_parent) {
+				var parent = this.getDeviceByID( device.id_parent );
+				if (parent) {
+					if (parent.device_type == "urn:schemas-micasaverde-com:device:ZigbeeNetwork:1")
+						return true;
+				}
+			}
+			return false;
+		},
+		isDeviceBT : function (device) {
+			if (device && device.id_parent) {
+				var parent = this.getDeviceByID( device.id_parent );
+				if (parent) {
+					if (parent.device_type == "urn:schemas-micasaverde-com:device:BluetoothNetwork:1")
+						return true;
+				}
+			}
+			return false;
+		},
 		getStatus : function( deviceid, service, variable ) {
 			var val = null;
-			$.each(_user_data.devices,function(idx,device) {
+			for ( var idx=0; idx<_user_data.devices.length; idx++) {
+				var device = _user_data.devices[idx];
 				if (device.id==deviceid) {
-					$.each(device.states, function(stateidx,state) {
+					for (var stateidx=0; stateidx<device.states.length; stateidx++) {
+						var state = device.states[stateidx];
 						if ((state.service==service) && (state.variable==variable)) {
 							val= state.value;
-							return false;
+							return val;
 						}
-					});
-					return ( val == null );
+					}
 				}
-			});
+			}
 			return val;
 		},
 		getCategoryTitle : function(catnum) {
@@ -68,18 +96,31 @@ var UserDataHelper = (function(user_data) {
 			});
 			return (found !=undefined) ? found : '';
 		},
-		evaluateConditions(deviceid,devsubcat,conditions) {
+		evaluateConditions : function(deviceid,devsubcat,conditions) {
 			var bResult = false;
 			var expressions=[];
 			var that = this;
-			$.each(conditions, function(i,condition){
+			var cache = {}
+			function _getStatus(deviceid,service,variable) {
+				if (cache[service] == undefined)
+					cache[service]={}
+				
+				if (cache[service] [variable]  !=  undefined)
+					return cache[service] [variable] ;
+
+				cache[service] [variable] = that.getStatus( deviceid, service,variable )
+				return cache[service] [variable] ;
+			}
+			for (var i=0; i<conditions.length; i++) {
+				var condition = conditions[i];
 				// strange device JSON sometime ... ex zWave repeater, condition is not defined
 				if ( (condition.service!=undefined) && (condition.variable!=undefined) &&
 					 ( (condition.subcategory_num==undefined) || (condition.subcategory_num==0) || (devsubcat==-1) || (condition.subcategory_num==devsubcat) ) )
 				{
 					var str = "";
 					if (isInteger( condition.value )) {
-						var val = that.getStatus( deviceid, condition.service, condition.variable );
+						// var val = that.getStatus( deviceid, condition.service, condition.variable );
+						var val = _getStatus( deviceid, condition.service, condition.variable );
 						if (val=="")
 							AltuiDebug.debug( "devid:{0} service:{1} variable:{2} devsubcat:{3} value:'{4}' should not be null".format( 
 								deviceid,
@@ -87,9 +128,8 @@ var UserDataHelper = (function(user_data) {
 								condition.variable,
 								devsubcat,
 								val));
-						val = val || 0;
 						str = "({0} {1} {2})".format(
-							val,
+							val || 0,
 							condition.operator, 
 							condition.value 
 						);
@@ -106,7 +146,7 @@ var UserDataHelper = (function(user_data) {
 				else {
 					AltuiDebug.debug("Invalid State Icon condition definition for deviceid:"+deviceid);
 				}
-			});
+			}
 			var str = expressions.join(" && ");
 			AltuiDebug.debug("_evaluateConditions(deviceid:{0} devsubcat:{1} str:{2} conditions:{3})".format(deviceid,devsubcat,str,JSON.stringify(conditions)));
 			var bResult = eval(str) ;
@@ -126,6 +166,8 @@ var UserDataHelper = (function(user_data) {
 			}
 			if (dt.Services) {
 				var todo = dt.Services.length;
+				if (todo==0)
+					cbfunc(dt.Services);
 				$.each(dt.Services, function (idx,service) {
 					// warning, async call, so result comes later. we need to wait until completion
 					var that = service.Actions;
@@ -165,7 +207,8 @@ var UserDataHelper = (function(user_data) {
 					// }
 				});
 				return;
-			}
+			} else 
+				cbfunc([]);
 			AltuiDebug.debug("_loadDeviceActions() : no services");	
 			return;
 		},
@@ -198,6 +241,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	var _scenes = null;
 	var _devices = null;
 	var _categories = null;
+	var _sceneActiveStatus = {};		// indexed by scid , gives the latest active status
 	var _devicetypes = {};
 	var _user_data = {};
 	var _change_cached_user_data = {};
@@ -333,10 +377,11 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		if (arr!=null) {
 			if ($.isFunction(filterfunc))
 				arr = $.grep( arr, filterfunc );
-			if ($.isFunction( func ))
-				$.each(arr,function(idx,obj){
-					func(idx+1,obj);	// device id in LUA is idx+1
-				});
+			if ($.isFunction( func )) {
+				for (var idx=0; idx<arr.length; idx++) {
+					func(idx+1,arr[idx]);	// device id in LUA is idx+1
+				}
+			}
 		};
 		if ( $.isFunction( endfunc ) )  {
 			endfunc(arr);			
@@ -494,6 +539,46 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		return jqxhr;
 	};
 	
+	function _isWorkflowEnabled() {
+		var altuidevice = MultiBox.getDeviceByID( 0, g_MyDeviceID );
+		var variable = MultiBox.getStatus( altuidevice, "urn:upnp-org:serviceId:altui1", "EnableWorkflows" ) || "0";
+		return (parseInt(variable)==1)
+	};
+	function _getWorkflowStatus(cbfunc) {
+		var jqxhr = _httpGet("?id=lr_ALTUI_Handler&command=getWorkflowsStatus",{dataType: "json",},cbfunc);
+		return jqxhr;
+	};
+	
+	function _getWorkflowHistory(altuiid,cbfunc) {
+		// var cmd = "cat /var/log/cmh/LuaUPnP.log | grep 'Wkflow - nextWorkflowState('".format(altuiid);
+		// var cmd = "tail -n 2000 /var/log/cmh/LuaUPnP.log | grep '[0123456789]: ALTUI: Wkflow - nextWorkflowState(.*, {0},.*==>'".format(altuiid);
+		// Wkflow - Workflow:'Workflow 0-2' nextWorkflowState(0-2, Thingspeak ==> Idle, Timer:Retour)
+		
+		var cmd = "cat /var/log/cmh/LuaUPnP.log | grep '[0123456789]: ALTUI: Wkflow - Workflow: {0}, Valid Transition found'".format(altuiid);
+		return _osCommand(cmd,true,function(str) {
+			if (str.success==true) {
+				var lines = [];
+				var re = /\d*\t(\d*\/\d*\/\d*\s\d*:\d*:\d*.\d*).*Wkflow - Workflow: .*Valid Transition found:(.*), Active State:(.*)=>(.*) /g; 
+				var m;
+				while ((m = re.exec(str.result)) !== null) {
+					if (m.index === re.lastIndex) {
+						re.lastIndex++;
+					}
+					// View your result using the m-variable.
+					// eg m[0] etc.
+					lines.push({
+						date:m[1], 
+						firing_link:m[2],
+						old_state:m[3], 
+						new_state:m[4]
+						});
+				}
+				if ($.isFunction(cbfunc)) {
+						cbfunc(lines)
+				}
+			}
+		});
+	};
 	function _getHouseMode(cbfunc) {
 		var jqxhr = _httpGet("?id=variableget&DeviceNum=0&serviceId=urn:micasaverde-com:serviceId:HomeAutomationGateway1&Variable=Mode",{},cbfunc);
 		return jqxhr;		
@@ -681,6 +766,15 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 							}
 						});
 					}
+					if (data.scenes != undefined) {
+						$.each(data.scenes, function(idx,scene) {
+							_sceneActiveStatus[ scene.id ] = scene.active;
+							var userdata_scene_idx = UserDataHelper(_user_data).findSceneIdxByID(scene.id);
+							if (userdata_scene_idx!=-1) {
+								_user_data.scenes[userdata_scene_idx].active = scene.active;
+							}
+						})
+					}
 					UIManager.refreshUI( false , false );	// partial and not first time
 					EventBus.publishEvent("on_startup_luStatusLoaded_"+_uniqID,data);
 					
@@ -702,6 +796,26 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		return jqxhr;	
 	}	
 	
+	function _sanityCheck(udata) {
+		$.each(udata.devices, function(i,device) {
+			var states = {}
+			$.each(device.states, function(j,state) {
+				if (states[ state.id ] == null )
+					states[ state.id ] = { variable: state.variable, value: state.value }
+				else {
+					var str = "warning device:{0} has duplicate state id {1} for variables: {2} , {3}".format( 
+						device.id, 
+						state.id, 
+						state.variable,
+						states[ state.id ].variable
+						);
+					console.log(str);
+					PageMessage.message(str, "warning");
+				}
+			})
+		})
+	}
+	
 	function _loadUserData(data) {
 		if ((data) && (data != "NO_CHANGES") && (data != "Exiting") )
 		{
@@ -709,22 +823,29 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 			if ($.isPlainObject( data )==false)
 				data = JSON.parse(data);
 			$.extend(_user_data, data);
+			// _user_data = cloneObject(data);	
 			_user_data_DataVersion = data.DataVersion;
 			_user_data_LoadTime = data.LoadTime;
 			_rooms = data.rooms;
 			_scenes = data.scenes;
 			_devices = data.devices;
 			
+			_sanityCheck(data);
+			
 			if (data.devices)
 				$.each(data.devices, function(idx,device) {
 					device.altuiid = "{0}-{1}".format(_uniqID,device.id);
 					device.favorite=Favorites.get('device',device.altuiid);
+					//urn:micasaverde-com:serviceId:HaDevice1, HideDeleteButton
+					if (parseInt(_getStatus( device.id, "urn:micasaverde-com:serviceId:HaDevice1", "HideDeleteButton" ))==1)
+						device.donotdelete = true;
 					// jsonp.ud.devices.push(device);
 				});
 			if (data.scenes)
 				$.each(data.scenes, function(idx,scene) {
 					scene.altuiid = "{0}-{1}".format(_uniqID,scene.id);
 					scene.favorite=Favorites.get('scene',scene.altuiid);
+					scene.active = _sceneActiveStatus[ scene.id ];
 					// jsonp.ud.scenes.push(scene);
 				});
 			if (data.rooms)
@@ -754,9 +875,11 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 					EventBus.publishEvent("on_ui_deviceStatusChanged",device);
 				}
 			});		
-			if (bFirst)
-				EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
-			EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);
+			if (data.devices) {
+				if (bFirst)
+					EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
+				EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);				
+			}
 		}
 	};
 
@@ -902,14 +1025,14 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		return jqxhr;
 	};
 
-	function _osCommand(cmd,cbfunc) {
+	function _osCommand(cmd,bSilent,cbfunc) {
 		var jqxhr = _httpGet( "?id=lr_ALTUI_Handler&command=oscommand&oscommand={0}".format( encodeURIComponent(cmd) ), {}, function(data, textStatus, jqXHR) {
 			if (data!=null) {
 				var success = (data[0]=="1");
 				if (success)
-					PageMessage.message(_T("Os Command execution succeeded"), "success");
+					if (bSilent!=true) PageMessage.message(_T("Os Command execution succeeded"), "success");
 				else
-					PageMessage.message( _T("Os Command execution on vera failed.")+"({0})".format(data) , "danger");
+					if (bSilent!=true) PageMessage.message( _T("Os Command execution on vera failed.")+"({0})".format(data) , "danger");
 				if ($.isFunction( cbfunc )) 
 					cbfunc({success:success, result:data.substr(2)},jqXHR);
 			}
@@ -1107,7 +1230,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		return batteryLevel; // Math.floor((Math.random() * 100) + 1);
 	};
 	
-	function _clearData(name, npage, cbfunc) {
+	function _clearData(key, name, npage, cbfunc) {
 		if (_uniqID!=0)	// only supported on master controller
 			return;
 			
@@ -1119,6 +1242,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 			type: "GET",
 			//dataType: "text",
 			data: {
+				prefix: key,
 				name: name,
 				npage: npage
 			}
@@ -1137,11 +1261,11 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		});
 	};
 	
-	function _saveDataChunk(name, npage, data, cbfunc) {
+	function _saveDataChunk(key, name, npage, data, cbfunc) {
 		if (_uniqID!=0)	// only supported on master controller
 			return;
 
-		AltuiDebug.debug("_saveDataChunk( {0}, page:{1}, data:{2} chars  )".format(name,npage,data.length));
+		AltuiDebug.debug("_saveDataChunk( {3}, {0}, page:{1}, data:{2} chars  )".format(name,npage,data.length,key));
 		var result = "";
 		var url = "data_request?id=lr_ALTUI_Handler&command=save_data";//&pages="+encodeURIComponent(JSON.stringify(pages));
 		var jqxhr = $.ajax( {
@@ -1149,13 +1273,14 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 			type: "GET",
 			//dataType: "text",
 			data: {
+				prefix: key,
 				name: name,
 				npage: npage,
 				data: encodeURIComponent(data)
 			}
 		})
 		.done(function(data, textStatus, jqXHR) {
-			AltuiDebug.debug("_saveDataChunk( {0}, page:{1}, data:{2} chars  ) => Res:{3}".format(name,npage,data.length,JSON.stringify(data)));
+			AltuiDebug.debug("_saveDataChunk( {4}, {0}, page:{1}, data:{2} chars  ) => Res:{3}".format(name,npage,data.length,JSON.stringify(data),key));
 			if ( $.isFunction( cbfunc ) )  {
 				cbfunc(data);			
 			}
@@ -1169,7 +1294,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		});
 	};
 
-	function _saveData( name, data , cbfunc) {
+	function _saveData( key, name, data , cbfunc) {
 		if (_uniqID!=0)	{
 			// only supported on master controller
 			AltuiDebug.debug("_saveData must only be called on master controller #0");
@@ -1180,7 +1305,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 		// we need a workaround to pass data via a POST but for now, all we have is a Get
 		// we know that 5400 char is ok, above it fails
 		var result="ok";
-		var maxchar = 2400;
+		var maxchar = 2000;
 		var todo = data.length;
 		var done = 0;
 		var npage = 0;
@@ -1189,7 +1314,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 			var len = Math.min( maxchar , data.length - done ) ;
 			if (len>0) {
 				var part = data.substring( done, done+len);
-				_saveDataChunk(name, npage, part,  function(data) {
+				_saveDataChunk(key, name, npage, part,  function(data) {
 					if (data=="")
 						cbfunc("");	// error
 					else {
@@ -1201,7 +1326,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 			}
 			else {
 				// no more data to send but we need to clean up Vera to remove extra variable
-				_clearData(name, npage, function(data) {
+				_clearData(key, name, npage, function(data) {
 					// now it is finished
 					cbfunc("ok");
 				});
@@ -1215,7 +1340,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	function _getSceneHistory( id, cbfunc) {
 		// var cmd = "cat /var/log/cmh/LuaUPnP.log | grep \"Device_Variable::m_szValue_set device: {0}.*;1m{1}\"".format(device.id,state.variable);
 		var cmd = "cat /var/log/cmh/LuaUPnP.log | grep '"+'\t'+"Scene::RunScene running {0} '".format(id);
-		return _osCommand(cmd,function(str) {
+		return _osCommand(cmd, false, function(str) {
 			var result = {
 				lines:[],
 				result:str
@@ -1238,12 +1363,9 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	function _getDeviceVariableHistory( device, varid, cbfunc) {
 		var id = device.id;
 		var state = MultiBox.getStateByID(device.altuiid,varid);
-		// var cmd = "cat /var/log/cmh/LuaUPnP.log | grep \"Device_Variable::m_szValue_set device: {0}.*;1m{1}\"".format(device.id,state.variable);
-		// var cmd = "cat /var/log/cmh/LuaUPnP.log | grep $'Device_Variable::m_szValue_set device: {0}.*\033\[35;1m{1}\033\[0m'".format(device.id,state.variable);
-		// var cmd = "cat /var/log/cmh/LuaUPnP.log | grep $'\033\[35;1m{1}\033\[0m'".format(device.id,state.variable);
 		var cmd = "cat /var/log/cmh/LuaUPnP.log | grep 'Device_Variable::m_szValue_set device: {0}.*;1m{1}\x1B'".format(device.id,state.variable);
 
-		return _osCommand(cmd,function(str) {
+		return _osCommand(cmd,false,function(str) {
 			var result = {
 				lines:[],
 				result:str
@@ -1368,6 +1490,25 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 					});
 				});
 		});
+		var altuiid = ""+_uniqID+"-";
+		var workflows = WorkflowManager.getWorkflows()
+		$.each(workflows, function(i,workflow) {
+			var descr = WorkflowManager.getWorkflowDescr(workflow.altuiid)
+			$.each(descr.states, function(j,state) {
+				$.each(['onEnter','onExit'], function(k,type) {
+					$.each(state[type], function(l,action){
+						if (action.device==(altuiid+device.id)) {
+							usedin_objects.push({type:'actionworkflow', subtype:type, workflow: workflow, state:state.name, action:action});
+						}
+					})
+				})
+				$.each(state['conditions'], function(l,cond){
+					if (cond.device==(altuiid+device.id)) {
+						usedin_objects.push({type:'triggerworkflow', workflow: workflow, state:state.name, cond:cond });
+					}
+				})
+			})
+		})
 		return usedin_objects;
 	};
 	
@@ -1379,10 +1520,6 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 			return ui_static_data.eventList2;
 		}
 		return [];
-	};
-	
-	function _isDeviceZwave(device) {
-		return UserDataHelper(_user_data).isDeviceZwave(device);
 	};
 	
 	function _resetPollCounters( cbfunc ) {
@@ -1469,12 +1606,17 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	addWatch		: _addWatch,				// ( lul_device, service, variable, deviceid, sceneid, expression, xml, provider, params)
 	delWatch		: _delWatch,				// ( lul_device, service, variable, deviceid, sceneid, expression, xml, provider, params)
 	getWatches		: _getWatches,				// (whichwatches,filterfunc)
-	isDeviceZwave	: _isDeviceZwave,	//(device)
+	isDeviceZwave	: function(device) { return UserDataHelper(_user_data).isDeviceZwave(device) },
+	isDeviceZigbee	: function(device) { return UserDataHelper(_user_data).isDeviceZigbee(device) },
+	isDeviceBT		: function(device) { return UserDataHelper(_user_data).isDeviceBT(device) },
 	getScenes		: _getScenes,
 	getSceneHistory : _getSceneHistory,
 	getScenesSync	: function() 		{ return _scenes; },
 	getSceneByID 	: _getSceneByID,
 	getNewSceneID	: _getNewSceneID,
+	getWorkflowStatus : _getWorkflowStatus,
+	getWorkflowHistory: _getWorkflowHistory,
+	isWorkflowEnabled : _isWorkflowEnabled,
 	getPlugins		: _getPlugins,
 	getPluginByID 	: _getPluginByID, 
 	getUsers		: _getUsers,
@@ -1520,7 +1662,7 @@ var VeraBox = ( function( uniq_id, ip_addr ) {
 	resetPollCounters : _resetPollCounters,
 	
 	// oscommand http://192.168.1.16/port_3480/data_request?id=lr_ALTUI_Handler&command=oscommand&oscommand=df
-	osCommand 		: _osCommand,	//(cmd,cbfunc)		
+	osCommand 		: _osCommand,	//(cmd,bSilent, cbfunc)		
 	runLua			: _runLua,
 	
 	// UI5 Compatibility mode: caching user data changes and saving them at user request
@@ -1610,6 +1752,7 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			_dataEngine = setTimeout( _refreshEngine, 3000 );
 			if (bFirst)
 				EventBus.publishEvent("on_ui_userDataFirstLoaded_"+_uniqID);
+			EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);
 		})
 		.fail(function(jqXHR, textStatus, errorThrown) {
 			if (_user_data == {})
@@ -1618,7 +1761,6 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 			_dataEngine = setTimeout( _refreshEngine, 2000 );
 		})
 		.always(function() {
-			EventBus.publishEvent("on_ui_userDataLoaded_"+_uniqID);
 		});
 	};
 	
@@ -1984,12 +2126,17 @@ var AltuiBox = ( function( uniq_id, ip_addr ) {
 	addWatch			: _todo,
 	delWatch			: _todo,
 	getWatches			: _getWatches,
-	isDeviceZwave	: 	function(device) { return UserDataHelper(_user_data).isDeviceZwave(device) },
+	isDeviceZwave	: function(device) { return UserDataHelper(_user_data).isDeviceZwave(device) },
+	isDeviceZigbee	: function(device) { return UserDataHelper(_user_data).isDeviceZigbee(device) },
+	isDeviceBT		: function(device) { return UserDataHelper(_user_data).isDeviceBT(device) },
 	getScenes		: _getScenes,
 	getSceneHistory : _todo,
 	getScenesSync	: _getScenesSync,
 	getSceneByID 	: _getSceneByID,
 	getNewSceneID	: _getNewSceneID,
+	getWorkflowStatus : _todo,
+	getWorkflowHistory: _todo,
+	isWorkflowEnabled : function() {return false},
 	getPlugins		: _todo,
 	getPluginByID 	: _todo,
 	getUsers		: _getUsers,
